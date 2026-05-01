@@ -24,18 +24,23 @@ Plateforme web dynamique en Côte d'Ivoire qui enregistre et gère les coordonn�
 - CRUD complet (mise à jour, suppression)
 
 ## What's Been Implemented (2026-02)
-- ✅ Backend complet (auth, profiles, search, matches, notifications, stats) — 45/45 tests pytest passés
+- ✅ Backend complet (auth, profiles, search, matches, notifications, stats) — 78/78 tests pytest passés
 - ✅ Auth téléphone+JWT (httpOnly cookie + Bearer header fallback)
-- ✅ Page d'accueil (hero + bento + CTA)
+- ✅ Page d'accueil (hero + bento + CTA) avec mention "Toute la Côte d'Ivoire · Ouvert à toutes les religions"
+- ✅ **Landing intelligente** : redirection auto vers /dashboard si connecté
 - ✅ Inscription/connexion avec sélecteur de rôle visuel
-- ✅ Tableau de bord par rôle avec stats rapides
-- ✅ Formulaires d'édition de profil nounou & particulier (validation + suppression)
-- ✅ Page de recherche avec 6 filtres simultanés
-- ✅ Page de détail nounou avec dialog d'envoi de demande
-- ✅ Page mes demandes (accepter/décliner pour nounou)
-- ✅ Page notifications (mark read / mark all)
-- ✅ Quartiers d'Abidjan : Cocody, Yopougon, Plateau, Marcory, Treichville, Adjamé, Abobo, Koumassi, Port-Bouët, Bingerville, Riviera, Angré, II Plateaux, Attécoubé, Anyama, Songon
-- ✅ Langues locales : Français, Dioula, Baoulé, Bété, Anglais, Sénoufo, Agni
+- ✅ Tableau de bord par rôle avec stats rapides + photo de profil
+- ✅ **Upload de photos via Object Storage Emergent** (POST /api/upload, GET /api/files/{path})
+- ✅ Profil nounou : photo personnelle obligatoire (téléversement réel)
+- ✅ Profil particulier : photo personnelle + 1 à 5 photos d'enfants à garder (toutes obligatoires)
+- ✅ **Couverture nationale** : 39 villes de Côte d'Ivoire (Abidjan, Bouaké, Yamoussoukro, Daloa, San-Pédro, Korhogo, etc.) ; quartier obligatoire pour Abidjan, libre/optionnel ailleurs
+- ✅ Page de recherche nounous avec 7 filtres (ville, quartier, dispo, type, exp, tarif, recherche)
+- ✅ **Page "Familles à la recherche" pour nounous** avec filtres (ville, quartier, type, horaires, budget)
+- ✅ **Matching bidirectionnel** : parent → nounou OU nounou → parent
+- ✅ Téléphone visible uniquement après acceptation mutuelle (côté parent ET côté nounou)
+- ✅ Page mes demandes avec photos + libellé direction (initié par moi / reçu)
+- ✅ Notifications croisées (création + accept/decline)
+- ✅ Langues locales : Français, Dioula, Baoulé, Bété, Anglais, Sénoufo, Agni, Attié, Guéré, Yacouba, Mahou, Lobi
 - ✅ CORS sécurisé (origin explicite + regex preview)
 
 ## P1 Backlog

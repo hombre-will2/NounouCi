@@ -24,23 +24,25 @@ Plateforme web dynamique en Côte d'Ivoire qui enregistre et gère les coordonn�
 - CRUD complet (mise à jour, suppression)
 
 ## What's Been Implemented (2026-02)
-- ✅ Backend complet (auth, profiles, search, matches, notifications, stats) — 78/78 tests pytest passés
+- ✅ Backend complet — **113/113 tests pytest passés (100 %)**
 - ✅ Auth téléphone+JWT (httpOnly cookie + Bearer header fallback)
-- ✅ Page d'accueil (hero + bento + CTA) avec mention "Toute la Côte d'Ivoire · Ouvert à toutes les religions"
-- ✅ **Landing intelligente** : redirection auto vers /dashboard si connecté
-- ✅ Inscription/connexion avec sélecteur de rôle visuel
-- ✅ Tableau de bord par rôle avec stats rapides + photo de profil
-- ✅ **Upload de photos via Object Storage Emergent** (POST /api/upload, GET /api/files/{path})
-- ✅ Profil nounou : photo personnelle obligatoire (téléversement réel)
-- ✅ Profil particulier : photo personnelle + 1 à 5 photos d'enfants à garder (toutes obligatoires)
-- ✅ **Couverture nationale** : 39 villes de Côte d'Ivoire (Abidjan, Bouaké, Yamoussoukro, Daloa, San-Pédro, Korhogo, etc.) ; quartier obligatoire pour Abidjan, libre/optionnel ailleurs
-- ✅ Page de recherche nounous avec 7 filtres (ville, quartier, dispo, type, exp, tarif, recherche)
-- ✅ **Page "Familles à la recherche" pour nounous** avec filtres (ville, quartier, type, horaires, budget)
-- ✅ **Matching bidirectionnel** : parent → nounou OU nounou → parent
-- ✅ Téléphone visible uniquement après acceptation mutuelle (côté parent ET côté nounou)
-- ✅ Page mes demandes avec photos + libellé direction (initié par moi / reçu)
-- ✅ Notifications croisées (création + accept/decline)
-- ✅ Langues locales : Français, Dioula, Baoulé, Bété, Anglais, Sénoufo, Agni, Attié, Guéré, Yacouba, Mahou, Lobi
+- ✅ **Logo customisé** (image bébé sur fond terracotta) sur tout le site
+- ✅ Page d'accueil avec mention "Toute la Côte d'Ivoire · Ouvert à toutes les religions"
+- ✅ Landing intelligente : redirection auto vers `/dashboard` (ou `/admin/ads` pour admin) si connecté
+- ✅ Inscription/connexion par téléphone, sélecteur de rôle visuel
+- ✅ Tableau de bord par rôle avec stats rapides + photo
+- ✅ Upload de photos via Object Storage Emergent (POST /api/upload, GET /api/files/{path})
+- ✅ Profil nounou : photo personnelle obligatoire
+- ✅ Profil particulier : photo perso + 1 à 5 photos d'enfants
+- ✅ **39 villes de Côte d'Ivoire** ; quartier obligatoire pour Abidjan, libre/optionnel ailleurs
+- ✅ Recherche nounous + recherche familles (réservée nounous), filtres multiples
+- ✅ Matching bidirectionnel parent ↔ nounou avec notifications croisées
+- ✅ Téléphone visible uniquement après acceptation mutuelle
+- ✅ **Tarif mensuel (FCFA/mois)** au lieu d'horaire (Côte d'Ivoire)
+- ✅ **Système de publicités** : 2 placements (`home` bannière + `pre_contact` modale)
+- ✅ **Panneau Admin** (`/admin/ads`) : CRUD complet sur les pubs (création, modification, activer/désactiver, supprimer) avec upload d'image
+- ✅ Compte admin seedé au démarrage : **+2250100000000 / Admin1234**
+- ✅ 12 langues locales (Français, Dioula, Baoulé, Bété, Anglais, Sénoufo, Agni, Attié, Guéré, Yacouba, Mahou, Lobi)
 - ✅ CORS sécurisé (origin explicite + regex preview)
 
 ## P1 Backlog

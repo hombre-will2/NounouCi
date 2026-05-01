@@ -13,7 +13,8 @@ from typing import Optional, List, Literal
 
 import bcrypt
 import jwt
-from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends, Query
+import requests
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends, Query, UploadFile, File, Header
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, ConfigDict, validator
@@ -25,6 +26,53 @@ db = client[os.environ["DB_NAME"]]
 
 JWT_ALGORITHM = "HS256"
 JWT_SECRET = os.environ["JWT_SECRET"]
+
+# Object storage config
+STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
+EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+APP_NAME = os.environ.get("APP_NAME", "nounou-connect-ci")
+storage_key: Optional[str] = None
+
+
+def init_storage() -> Optional[str]:
+    global storage_key
+    if storage_key:
+        return storage_key
+    if not EMERGENT_KEY:
+        return None
+    try:
+        r = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30)
+        r.raise_for_status()
+        storage_key = r.json()["storage_key"]
+        return storage_key
+    except Exception as e:
+        logging.getLogger("nounou").error(f"Storage init failed: {e}")
+        return None
+
+
+def put_object(path: str, data: bytes, content_type: str) -> dict:
+    key = init_storage()
+    if not key:
+        raise HTTPException(status_code=500, detail="Stockage non initialisé")
+    r = requests.put(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key, "Content-Type": content_type},
+        data=data, timeout=120,
+    )
+    r.raise_for_status()
+    return r.json()
+
+
+def get_object(path: str):
+    key = init_storage()
+    if not key:
+        raise HTTPException(status_code=500, detail="Stockage non initialisé")
+    r = requests.get(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key}, timeout=60,
+    )
+    r.raise_for_status()
+    return r.content, r.headers.get("Content-Type", "application/octet-stream")
 
 app = FastAPI(title="Nounou Connect CI")
 api = APIRouter(prefix="/api")
@@ -138,10 +186,14 @@ class ParentProfileIn(BaseModel):
     schedule: str  # "Journée", "Soirée", "Nuit", "Week-end"
     care_type: str  # "Garde régulière", "Ponctuelle", "Sortie école"
     budget_max: int = Field(ge=0)
+    photo_url: Optional[str] = None
+    children_photos: List[str] = []
 
 
 class MatchCreateIn(BaseModel):
-    nanny_id: str
+    # Either nanny_id (parent initiates) OR parent_id (nounou initiates)
+    nanny_id: Optional[str] = None
+    parent_id: Optional[str] = None
     message: str = ""
 
 
@@ -302,6 +354,57 @@ async def get_nanny(nanny_id: str, user: dict = Depends(get_current_user)):
     return {"nanny": profile}
 
 
+# -------------------- Search Parents (for nounous) --------------------
+@api.get("/parents")
+async def list_parents(
+    user: dict = Depends(get_current_user),
+    city: Optional[str] = None,
+    quartier: Optional[str] = None,
+    care_type: Optional[str] = None,
+    schedule: Optional[str] = None,
+    min_budget: Optional[int] = Query(None, ge=0),
+    search: Optional[str] = None,
+):
+    if user["role"] != "nounou":
+        raise HTTPException(status_code=403, detail="Réservé aux nounous")
+    q: dict = {}
+    if city and city != "all":
+        q["city"] = city
+    if quartier and quartier != "all":
+        q["quartier"] = quartier
+    if care_type and care_type != "all":
+        q["care_type"] = care_type
+    if schedule and schedule != "all":
+        q["schedule"] = schedule
+    if min_budget is not None:
+        q["budget_max"] = {"$gte": min_budget}
+    if search:
+        regex = {"$regex": search, "$options": "i"}
+        q["$or"] = [{"first_name": regex}, {"last_name": regex}, {"needs_description": regex}]
+    cursor = db.parent_profiles.find(q, {"_id": 0, "phone": 0, "address": 0}).sort("updated_at", -1)
+    parents = await cursor.to_list(200)
+    return {"parents": parents}
+
+
+@api.get("/parents/{parent_id}")
+async def get_parent(parent_id: str, user: dict = Depends(get_current_user)):
+    if user["role"] != "nounou" and user["id"] != parent_id:
+        raise HTTPException(status_code=403, detail="Réservé aux nounous")
+    profile = await db.parent_profiles.find_one({"user_id": parent_id}, {"_id": 0})
+    if not profile:
+        raise HTTPException(status_code=404, detail="Particulier introuvable")
+    if user["id"] != parent_id:
+        match = await db.matches.find_one({
+            "parent_id": parent_id,
+            "nanny_id": user["id"],
+            "status": "accepted",
+        })
+        if not match:
+            profile.pop("phone", None)
+            profile.pop("address", None)
+    return {"parent": profile}
+
+
 # -------------------- Matches --------------------
 async def create_notification(user_id: str, message: str, link: str = ""):
     doc = {
@@ -317,34 +420,78 @@ async def create_notification(user_id: str, message: str, link: str = ""):
 
 @api.post("/matches")
 async def create_match(body: MatchCreateIn, user: dict = Depends(get_current_user)):
-    if user["role"] != "parent":
-        raise HTTPException(status_code=403, detail="Seuls les particuliers peuvent envoyer une demande")
-    nanny = await db.users.find_one({"id": body.nanny_id, "role": "nounou"}, {"_id": 0})
-    if not nanny:
-        raise HTTPException(status_code=404, detail="Nounou introuvable")
-    existing = await db.matches.find_one({"parent_id": user["id"], "nanny_id": body.nanny_id, "status": {"$in": ["pending", "accepted"]}})
-    if existing:
-        raise HTTPException(status_code=400, detail="Vous avez déjà une demande en cours avec cette nounou")
-    match = {
-        "id": str(uuid.uuid4()),
-        "parent_id": user["id"],
-        "parent_name": f"{user['first_name']} {user['last_name']}",
-        "parent_phone": user["phone"],
-        "nanny_id": body.nanny_id,
-        "nanny_name": f"{nanny['first_name']} {nanny['last_name']}",
-        "message": body.message,
-        "status": "pending",
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    }
-    await db.matches.insert_one(match)
-    await create_notification(
-        body.nanny_id,
-        f"{user['first_name']} {user['last_name']} souhaite vous contacter.",
-        f"/matches",
-    )
-    match.pop("_id", None)
-    return {"match": match}
+    if user["role"] == "parent":
+        if not body.nanny_id:
+            raise HTTPException(status_code=422, detail="nanny_id requis")
+        nanny = await db.users.find_one({"id": body.nanny_id, "role": "nounou"}, {"_id": 0})
+        if not nanny:
+            raise HTTPException(status_code=404, detail="Nounou introuvable")
+        existing = await db.matches.find_one({
+            "parent_id": user["id"], "nanny_id": body.nanny_id,
+            "status": {"$in": ["pending", "accepted"]},
+        })
+        if existing:
+            raise HTTPException(status_code=400, detail="Vous avez déjà une demande en cours avec cette nounou")
+        match = {
+            "id": str(uuid.uuid4()),
+            "parent_id": user["id"],
+            "parent_name": f"{user['first_name']} {user['last_name']}",
+            "parent_phone": user["phone"],
+            "nanny_id": body.nanny_id,
+            "nanny_name": f"{nanny['first_name']} {nanny['last_name']}",
+            "nanny_phone": nanny.get("phone"),
+            "initiated_by": "parent",
+            "message": body.message,
+            "status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.matches.insert_one(match)
+        await create_notification(
+            body.nanny_id,
+            f"{user['first_name']} {user['last_name']} souhaite vous contacter.",
+            "/matches",
+        )
+        match.pop("_id", None)
+        return {"match": match}
+
+    # Nounou initie une demande vers un particulier
+    if user["role"] == "nounou":
+        if not body.parent_id:
+            raise HTTPException(status_code=422, detail="parent_id requis")
+        parent = await db.users.find_one({"id": body.parent_id, "role": "parent"}, {"_id": 0})
+        if not parent:
+            raise HTTPException(status_code=404, detail="Particulier introuvable")
+        existing = await db.matches.find_one({
+            "parent_id": body.parent_id, "nanny_id": user["id"],
+            "status": {"$in": ["pending", "accepted"]},
+        })
+        if existing:
+            raise HTTPException(status_code=400, detail="Vous avez déjà une demande en cours avec ce particulier")
+        match = {
+            "id": str(uuid.uuid4()),
+            "parent_id": body.parent_id,
+            "parent_name": f"{parent['first_name']} {parent['last_name']}",
+            "parent_phone": parent.get("phone"),
+            "nanny_id": user["id"],
+            "nanny_name": f"{user['first_name']} {user['last_name']}",
+            "nanny_phone": user["phone"],
+            "initiated_by": "nounou",
+            "message": body.message,
+            "status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.matches.insert_one(match)
+        await create_notification(
+            body.parent_id,
+            f"La nounou {user['first_name']} {user['last_name']} souhaite vous contacter.",
+            "/matches",
+        )
+        match.pop("_id", None)
+        return {"match": match}
+
+    raise HTTPException(status_code=403, detail="Action non autorisée")
 
 
 @api.get("/matches")
@@ -354,7 +501,22 @@ async def list_my_matches(user: dict = Depends(get_current_user)):
     else:
         q = {"nanny_id": user["id"]}
     cursor = db.matches.find(q, {"_id": 0}).sort("updated_at", -1)
-    return {"matches": await cursor.to_list(200)}
+    matches = await cursor.to_list(200)
+    # Enrich with photos
+    nanny_ids = {m["nanny_id"] for m in matches}
+    parent_ids = {m["parent_id"] for m in matches}
+    nanny_photos = {}
+    parent_photos = {}
+    if nanny_ids:
+        async for n in db.nanny_profiles.find({"user_id": {"$in": list(nanny_ids)}}, {"_id": 0, "user_id": 1, "photo_url": 1}):
+            nanny_photos[n["user_id"]] = n.get("photo_url")
+    if parent_ids:
+        async for p in db.parent_profiles.find({"user_id": {"$in": list(parent_ids)}}, {"_id": 0, "user_id": 1, "photo_url": 1}):
+            parent_photos[p["user_id"]] = p.get("photo_url")
+    for m in matches:
+        m["nanny_photo_url"] = nanny_photos.get(m["nanny_id"])
+        m["parent_photo_url"] = parent_photos.get(m["parent_id"])
+    return {"matches": matches}
 
 
 @api.put("/matches/{match_id}")
@@ -362,8 +524,19 @@ async def update_match(match_id: str, body: MatchUpdateIn, user: dict = Depends(
     match = await db.matches.find_one({"id": match_id}, {"_id": 0})
     if not match:
         raise HTTPException(status_code=404, detail="Demande introuvable")
-    if user["role"] != "nounou" or match["nanny_id"] != user["id"]:
-        raise HTTPException(status_code=403, detail="Action non autorisée")
+    initiated_by = match.get("initiated_by", "parent")
+    # The recipient (the one who didn't initiate) can accept/decline
+    if initiated_by == "parent":
+        # nounou is the recipient
+        if user["role"] != "nounou" or match["nanny_id"] != user["id"]:
+            raise HTTPException(status_code=403, detail="Action non autorisée")
+        notify_user_id = match["parent_id"]
+    else:
+        # parent is the recipient
+        if user["role"] != "parent" or match["parent_id"] != user["id"]:
+            raise HTTPException(status_code=403, detail="Action non autorisée")
+        notify_user_id = match["nanny_id"]
+
     new_status = body.status
     await db.matches.update_one(
         {"id": match_id},
@@ -371,9 +544,9 @@ async def update_match(match_id: str, body: MatchUpdateIn, user: dict = Depends(
     )
     msg = "acceptée" if new_status == "accepted" else "déclinée"
     await create_notification(
-        match["parent_id"],
+        notify_user_id,
         f"{user['first_name']} {user['last_name']} a {msg} votre demande.",
-        f"/matches",
+        "/matches",
     )
     match["status"] = new_status
     return {"match": match}
@@ -437,8 +610,17 @@ async def startup():
     await db.nanny_profiles.create_index("user_id", unique=True)
     await db.nanny_profiles.create_index("quartier")
     await db.parent_profiles.create_index("user_id", unique=True)
+    await db.parent_profiles.create_index("city")
     await db.matches.create_index([("parent_id", 1), ("nanny_id", 1)])
     await db.notifications.create_index([("user_id", 1), ("created_at", -1)])
+    await db.files.create_index("storage_path")
+    try:
+        if init_storage():
+            logger.info("Storage initialized")
+        else:
+            logger.warning("Storage NOT initialized (missing EMERGENT_LLM_KEY)")
+    except Exception as e:
+        logger.error(f"Storage init failed: {e}")
     logger.info("Indexes ready")
 
 

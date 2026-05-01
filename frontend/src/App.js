@@ -11,6 +11,8 @@ import NannyProfileEdit from "./pages/NannyProfileEdit";
 import ParentProfileEdit from "./pages/ParentProfileEdit";
 import SearchNannies from "./pages/SearchNannies";
 import NannyDetail from "./pages/NannyDetail";
+import SearchParents from "./pages/SearchParents";
+import ParentDetail from "./pages/ParentDetail";
 import MatchesPage from "./pages/MatchesPage";
 import NotificationsPage from "./pages/NotificationsPage";
 
@@ -39,6 +41,22 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/search" element={<SearchNannies />} />
             <Route path="/nounous/:id" element={<NannyDetail />} />
+            <Route
+              path="/familles"
+              element={
+                <ProtectedRoute>
+                  <SearchParents />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/familles/:id"
+              element={
+                <ProtectedRoute>
+                  <ParentDetail />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/dashboard"
               element={

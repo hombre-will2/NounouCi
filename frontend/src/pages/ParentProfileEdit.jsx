@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Save, Trash2 } from "lucide-react";
 import Navbar from "../components/Navbar";
+import ImageUpload from "../components/ImageUpload";
+import MultiImageUpload from "../components/MultiImageUpload";
 import { api, formatApiErrorDetail } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "../components/ui/button";
@@ -12,7 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "../components/ui/select";
 import { toast } from "sonner";
-import { QUARTIERS, CARE_TYPES, SCHEDULES } from "../lib/constants";
+import { ABIDJAN_QUARTIERS, CITIES, CARE_TYPES, SCHEDULES } from "../lib/constants";
 
 export default function ParentProfileEdit() {
   const { user } = useAuth();
@@ -26,7 +28,10 @@ export default function ParentProfileEdit() {
     schedule: "Journée (8h-18h)",
     care_type: "Bébé (0-2 ans)",
     budget_max: 2000,
+    photo_url: "",
+    children_photos: [],
   });
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -39,8 +44,20 @@ export default function ParentProfileEdit() {
     });
   }, [user, navigate]);
 
+  const validate = () => {
+    const e = {};
+    if (!form.photo_url) e.photo_url = "Une photo de vous est requise pour valider votre profil";
+    if (!form.children_photos?.length) e.children_photos = "Au moins une photo d'enfant est requise";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
   const submit = async (ev) => {
     ev.preventDefault();
+    if (!validate()) {
+      toast.error("Merci de compléter les champs obligatoires");
+      return;
+    }
     setLoading(true);
     try {
       await api.put("/profile/parent", form);
@@ -64,37 +81,77 @@ export default function ParentProfileEdit() {
     }
   };
 
+  const isAbidjan = form.city === "Abidjan";
+
   return (
     <div className="bg-paper min-h-screen">
       <Navbar />
       <div className="max-w-3xl mx-auto px-5 sm:px-8 py-10 fade-in">
         <h1 className="font-display text-3xl sm:text-4xl text-gray-900 mb-2">Mes besoins de garde</h1>
-        <p className="text-gray-600 mb-8">Détaillez vos attentes pour des correspondances pertinentes.</p>
+        <p className="text-gray-600 mb-8">
+          Détaillez vos attentes et téléversez votre photo + celle de vos enfants pour valider votre profil.
+        </p>
 
-        <form onSubmit={submit} className="bg-white rounded-3xl p-6 sm:p-8 border border-warm space-y-5">
+        <form onSubmit={submit} className="bg-white rounded-3xl p-6 sm:p-8 border border-warm space-y-6">
+          <div className="grid sm:grid-cols-2 gap-6">
+            <div>
+              <ImageUpload
+                value={form.photo_url}
+                onChange={(p) => setForm({ ...form, photo_url: p || "" })}
+                label="Votre photo *"
+                roundedFull
+                size="lg"
+                testId="parent-photo"
+              />
+              {errors.photo_url && <p className="text-xs text-red-600 mt-1">{errors.photo_url}</p>}
+            </div>
+            <div>
+              <MultiImageUpload
+                value={form.children_photos}
+                onChange={(arr) => setForm({ ...form, children_photos: arr })}
+                label="Photos de votre/vos enfant(s) *"
+                max={5}
+                testId="parent-children"
+              />
+              {errors.children_photos && <p className="text-xs text-red-600 mt-1">{errors.children_photos}</p>}
+            </div>
+          </div>
+
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <Label className="text-sm font-semibold mb-1.5 block">Quartier</Label>
-              <Select value={form.quartier} onValueChange={(v) => setForm({ ...form, quartier: v })}>
-                <SelectTrigger data-testid="parent-quartier-trigger" className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
+              <Label className="text-sm font-semibold mb-1.5 block">Ville</Label>
+              <Select value={form.city} onValueChange={(v) => setForm({ ...form, city: v, quartier: v === "Abidjan" ? "Cocody" : "" })}>
+                <SelectTrigger data-testid="parent-city-trigger" className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {QUARTIERS.map((q) => <SelectItem key={q} value={q}>{q}</SelectItem>)}
+                  {CITIES.map((q) => <SelectItem key={q} value={q}>{q}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-sm font-semibold mb-1.5 block">Ville</Label>
-              <Input
-                data-testid="parent-city"
-                value={form.city}
-                onChange={(e) => setForm({ ...form, city: e.target.value })}
-                className="h-11 rounded-xl"
-              />
+              <Label className="text-sm font-semibold mb-1.5 block">
+                {isAbidjan ? "Quartier" : "Quartier / Zone (optionnel)"}
+              </Label>
+              {isAbidjan ? (
+                <Select value={form.quartier} onValueChange={(v) => setForm({ ...form, quartier: v })}>
+                  <SelectTrigger data-testid="parent-quartier-trigger" className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ABIDJAN_QUARTIERS.map((q) => <SelectItem key={q} value={q}>{q}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  data-testid="parent-quartier-input"
+                  value={form.quartier}
+                  onChange={(e) => setForm({ ...form, quartier: e.target.value })}
+                  className="h-11 rounded-xl"
+                  placeholder="Ex: Centre-ville"
+                />
+              )}
             </div>
           </div>
 
           <div>
-            <Label className="text-sm font-semibold mb-1.5 block">Adresse (optionnelle)</Label>
+            <Label className="text-sm font-semibold mb-1.5 block">Adresse (optionnelle, partagée seulement après acceptation)</Label>
             <Input
               data-testid="parent-address"
               value={form.address}

@@ -65,7 +65,12 @@ export default function Navbar() {
 
           <div className="hidden md:flex items-center gap-1">
             <NavLink to="/" testId="nav-home">Accueil</NavLink>
-            <NavLink to="/search" testId="nav-search">Trouver une nounou</NavLink>
+            {(!user || user.role === "parent") && (
+              <NavLink to="/search" testId="nav-search">Trouver une nounou</NavLink>
+            )}
+            {user?.role === "nounou" && (
+              <NavLink to="/familles" testId="nav-parents">Familles à la recherche</NavLink>
+            )}
             {user && (
               <>
                 <NavLink to="/dashboard" testId="nav-dashboard">Tableau de bord</NavLink>
@@ -134,7 +139,12 @@ export default function Navbar() {
         {open && (
           <div className="md:hidden pb-4 flex flex-col gap-1 border-t pt-3">
             <NavLink to="/" testId="nav-home-m">Accueil</NavLink>
-            <NavLink to="/search" testId="nav-search-m">Trouver une nounou</NavLink>
+            {(!user || user.role === "parent") && (
+              <NavLink to="/search" testId="nav-search-m">Trouver une nounou</NavLink>
+            )}
+            {user?.role === "nounou" && (
+              <NavLink to="/familles" testId="nav-parents-m">Familles à la recherche</NavLink>
+            )}
             {user ? (
               <>
                 <NavLink to="/dashboard" testId="nav-dashboard-m">Tableau de bord</NavLink>

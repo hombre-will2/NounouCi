@@ -225,9 +225,10 @@ class TestMatches:
                   token=state["parent_token"])
         assert r.status_code == 400
 
-    def test_create_match_forbidden_for_nanny(self):
+    def test_create_match_nanny_missing_parent_id(self):
+        # Bidirectional: nounou must provide parent_id (422 now instead of 403)
         r = _post("/matches", {"nanny_id": state["nanny2_id"]}, token=state["nanny_token"])
-        assert r.status_code == 403
+        assert r.status_code == 422
 
     def test_create_match_unknown_nanny(self):
         r = _post("/matches", {"nanny_id": "nonexistent-id"}, token=state["parent_token"])

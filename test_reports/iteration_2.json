@@ -1,0 +1,45 @@
+{
+  "summary": "Iteration 2: Regression + new features tests. 74/78 pass. CRITICAL: POST /api/upload and GET /api/files/{path} endpoints are NOT implemented in server.py (helper functions put_object/get_object exist but no FastAPI routes bind them). All other new features work: /api/parents (nounou-only, all filters), bidirectional matching (nounou->parent), initiated_by field, recipient-only accept/decline, cross-notifications, phone visibility on accepted matches, photo enrichment on /matches.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/upload", "issue": "Endpoint NOT IMPLEMENTED (404). server.py defines put_object() helper and storage init but no FastAPI route. Photo upload flow completely broken.", "priority": "CRITICAL"},
+      {"endpoint": "GET /api/files/{path}", "issue": "Endpoint NOT IMPLEMENTED (404). get_object() helper exists but no FastAPI route registered.", "priority": "CRITICAL"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_nounou.py",
+    "/app/backend/tests/test_new_features.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Implement POST /api/upload: multipart File upload, validate content-type in {image/jpeg, image/png, image/webp}, enforce max 5MB, require auth, call put_object(f'{user_id}/{uuid}.{ext}', bytes, content_type), persist record in db.files, return {'url': f'/api/files/{path}', 'path': path}.",
+    "Implement GET /api/files/{path:path}: call get_object(path) and return fastapi.responses.Response(content=bytes, media_type=content_type). Public access is fine for photos referenced in profiles.",
+    "Verify Emergent storage API response format matches what put_object assumes (r.json() on PUT). Add error handling for 4xx from storage.",
+    "Ensure /api/files/{path} accepts paths with slashes (use path converter)."
+  ],
+  "critical_code_review_comments": [
+    "server.py lines 53-75: put_object/get_object helpers exist but no FastAPI route exposes them - dead code.",
+    "init_storage() is synchronous (requests) inside async startup - acceptable for one-shot but storage_key is a module global that won't refresh if remote key rotates.",
+    "put_object uses requests (sync) inside async handler contexts - will block the event loop. Should use httpx.AsyncClient or run in threadpool.",
+    "GET /matches (line 497) could be inefficient for users with many matches - ok for now.",
+    "CORS_ORIGINS='*' in .env is expanded with allow_credentials=True; code correctly filters out '*' so actual allow list uses explicit origins + preview regex - OK.",
+    "POST /matches duplicate detection uses (parent_id, nanny_id, status) - correctly covers both initiation directions.",
+    "DELETE /matches allows either party to delete with no notification to the other - consider notifying."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_nounou.py (updated test_create_match_forbidden_for_nanny to test_create_match_nanny_missing_parent_id to reflect bidirectional API)",
+    "/app/backend/tests/test_new_features.py (new: upload, parents, bidirectional matching tests)"
+  ],
+  "success_rate": {"backend": "94.9% (74/78, 3 skipped due to upload missing)", "frontend": "not tested"},
+  "seed_data_creation": "Dynamic test users with unique phones per run (+22505{ts}xx and +22507{ts}xx). No DB cleanup; prior iterations' data remain.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "After main agent adds POST /api/upload and GET /api/files/{path}, re-run /app/backend/tests/test_new_features.py TestUpload class - it has upload+get flow via state['uploaded_url']. The 3 skipped tests (reject_non_image, reject_large, get_file) will auto-run once upload endpoint returns 200. All other endpoints verified working including bidirectional matching flows and /api/parents filters.",
+  "rca_of_the_issue": "server.py defines storage helpers (put_object/get_object at lines 53-75) and initializes storage on startup (logs 'Storage initialized'), but no @api.post('/upload') or @api.get('/files/{path}') route decorator exists. curl test on deployed URL confirms 404 on both endpoints. Main agent must add the FastAPI route handlers."
+}

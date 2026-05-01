@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Heart, Search, Shield, Star, MapPin, Users, CheckCircle2, ArrowRight } from "lucide-react";
+import { Link, Navigate } from "react-router-dom";
+import { Heart, Search, Shield, Star, MapPin, Users, CheckCircle2, ArrowRight, Globe2 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { Button } from "../components/ui/button";
 import { api } from "../lib/api";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Landing() {
+  const { user, loading: authLoading } = useAuth();
   const [stats, setStats] = useState({ nannies: 0, parents: 0, matches: 0 });
 
   useEffect(() => {
     api.get("/stats").then(({ data }) => setStats(data)).catch(() => {});
   }, []);
+
+  // Redirige les utilisateurs connectés vers leur tableau de bord
+  if (!authLoading && user) return <Navigate to="/dashboard" replace />;
 
   return (
     <div className="bg-warm-paper min-h-screen">
@@ -21,7 +26,7 @@ export default function Landing() {
         <div className="grid lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-7">
             <div className="inline-flex items-center gap-2 bg-orange-50 text-terracotta px-4 py-1.5 rounded-full text-sm font-semibold mb-6 border border-orange-100">
-              <MapPin className="w-4 h-4" /> Côte d'Ivoire · Abidjan
+              <MapPin className="w-4 h-4" /> Toute la Côte d'Ivoire · Ouvert à toutes les religions
             </div>
             <h1
               data-testid="landing-hero-title"
@@ -124,12 +129,12 @@ export default function Landing() {
       <section className="max-w-7xl mx-auto px-5 sm:px-8 py-16">
         <div className="grid md:grid-cols-3 gap-6">
           <div className="md:col-span-2 bg-sage text-white rounded-3xl p-10 relative overflow-hidden">
-            <h3 className="font-display text-3xl mb-4 max-w-md">Recherche par quartier d'Abidjan</h3>
-            <p className="opacity-90 mb-6 max-w-md">Cocody, Yopougon, Marcory, Plateau, Treichville… Trouvez quelqu'un proche de chez vous pour faciliter le quotidien.</p>
+            <h3 className="font-display text-3xl mb-4 max-w-md">Toute la Côte d'Ivoire</h3>
+            <p className="opacity-90 mb-6 max-w-md">Abidjan, Bouaké, Yamoussoukro, Daloa, San-Pédro, Korhogo, Man… Trouvez quelqu'un proche de chez vous, peu importe votre ville ou votre religion.</p>
             <Link to="/search" data-testid="feature-search-link">
               <Button className="bg-white text-sage hover:bg-orange-50 rounded-full">Lancer une recherche</Button>
             </Link>
-            <MapPin className="absolute -right-6 -bottom-6 w-48 h-48 text-white/10" />
+            <Globe2 className="absolute -right-6 -bottom-6 w-48 h-48 text-white/10" />
           </div>
           <div className="bg-accent rounded-3xl p-10 text-gray-900">
             <Shield className="w-10 h-10 mb-3" />

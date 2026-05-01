@@ -22,6 +22,7 @@ export default function Dashboard() {
 
   if (!user) return null;
   const isNanny = user.role === "nounou";
+  const photoSrc = (p) => (p && p.startsWith("http") ? p : p ? `${API}/files/${p}` : null);
 
   const pendingCount = matches.filter((m) => m.status === "pending").length;
   const acceptedCount = matches.filter((m) => m.status === "accepted").length;
@@ -98,10 +99,19 @@ export default function Dashboard() {
                 </Link>
               </div>
             ) : (
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid sm:grid-cols-[auto_1fr] gap-5 items-start">
+                {profile.photo_url && (
+                  <img
+                    src={photoSrc(profile.photo_url)}
+                    alt={profile.first_name}
+                    data-testid="dashboard-profile-photo"
+                    className="w-24 h-24 rounded-2xl object-cover border-2 border-warm"
+                  />
+                )}
+                <div className="grid sm:grid-cols-2 gap-4 flex-1">
                 <InfoRow icon={<UserCircle className="w-4 h-4" />} label="Nom complet" value={`${profile.first_name} ${profile.last_name}`} />
                 <InfoRow icon={<Phone className="w-4 h-4" />} label="Téléphone" value={profile.phone} />
-                <InfoRow icon={<MapPin className="w-4 h-4" />} label="Quartier" value={`${profile.quartier}, ${profile.city}`} />
+                <InfoRow icon={<MapPin className="w-4 h-4" />} label="Localisation" value={`${profile.quartier ? profile.quartier + ", " : ""}${profile.city}`} />
                 {isNanny ? (
                   <>
                     <InfoRow icon={<Briefcase className="w-4 h-4" />} label="Expérience" value={`${profile.experience_years} an(s)`} />
@@ -115,6 +125,7 @@ export default function Dashboard() {
                     <InfoRow label="Budget max." value={`${profile.budget_max} FCFA/h`} />
                   </>
                 )}
+                </div>
               </div>
             )}
           </div>
@@ -125,7 +136,16 @@ export default function Dashboard() {
                 <div className="bg-terracotta text-white rounded-3xl p-6 hover:bg-[#C55B3A] transition-colors">
                   <Search className="w-8 h-8 mb-3" />
                   <h3 className="font-display text-xl mb-1">Trouver une nounou</h3>
-                  <p className="text-sm opacity-90">Filtrez par quartier, expérience, budget.</p>
+                  <p className="text-sm opacity-90">Filtrez par ville, quartier, expérience, budget.</p>
+                </div>
+              </Link>
+            )}
+            {isNanny && (
+              <Link to="/familles" data-testid="dashboard-parents-cta" className="block">
+                <div className="bg-terracotta text-white rounded-3xl p-6 hover:bg-[#C55B3A] transition-colors">
+                  <Search className="w-8 h-8 mb-3" />
+                  <h3 className="font-display text-xl mb-1">Familles à la recherche</h3>
+                  <p className="text-sm opacity-90">Découvrez les particuliers et postulez auprès d'eux.</p>
                 </div>
               </Link>
             )}

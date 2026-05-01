@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { MapPin, Briefcase, Phone, Globe2, Heart, ArrowLeft } from "lucide-react";
 import Navbar from "../components/Navbar";
-import { api, formatApiErrorDetail } from "../lib/api";
+import { api, API, formatApiErrorDetail } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
@@ -61,6 +61,7 @@ export default function NannyDetail() {
 
   const isOwn = user?.id === nanny.user_id;
   const canRequest = user?.role === "parent";
+  const photoSrc = (p) => (p && p.startsWith("http") ? p : p ? `${API}/files/${p}` : null);
 
   return (
     <div className="bg-paper min-h-screen">
@@ -75,7 +76,7 @@ export default function NannyDetail() {
             <div className="bg-white rounded-3xl overflow-hidden border border-warm">
               <div className="aspect-square bg-gray-100">
                 {nanny.photo_url ? (
-                  <img src={nanny.photo_url} alt={nanny.first_name} className="w-full h-full object-cover" />
+                  <img src={photoSrc(nanny.photo_url)} alt={nanny.first_name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-6xl font-display text-gray-300">
                     {nanny.first_name?.[0]}
@@ -100,7 +101,7 @@ export default function NannyDetail() {
               </p>
 
               <div className="grid sm:grid-cols-2 gap-4 mt-6 pt-6 border-t border-warm">
-                <Info icon={<MapPin className="w-4 h-4 text-terracotta" />} label="Quartier" value={`${nanny.quartier}, ${nanny.city}`} />
+                <Info icon={<MapPin className="w-4 h-4 text-terracotta" />} label="Localisation" value={`${nanny.quartier ? nanny.quartier + ", " : ""}${nanny.city}`} />
                 <Info icon={<Briefcase className="w-4 h-4 text-sage" />} label="Expérience" value={`${nanny.experience_years} an(s)`} />
                 <Info label="Disponibilité" value={nanny.availability} />
                 {nanny.phone && <Info icon={<Phone className="w-4 h-4 text-sage" />} label="Téléphone" value={nanny.phone} />}

@@ -563,6 +563,51 @@ async def delete_match(match_id: str, user: dict = Depends(get_current_user)):
     return {"ok": True}
 
 
+# -------------------- Upload / Files --------------------
+ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp", "image/jpg"}
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5 MB
+
+
+@api.post("/upload")
+async def upload_file(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    content_type = (file.content_type or "").lower()
+    if content_type not in ALLOWED_MIME:
+        raise HTTPException(status_code=400, detail="Format non autorisé (JPEG/PNG/WebP)")
+    data = await file.read()
+    if len(data) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=400, detail="Image trop grande (max 5 Mo)")
+    ext = "jpg"
+    if "png" in content_type:
+        ext = "png"
+    elif "webp" in content_type:
+        ext = "webp"
+    path = f"{APP_NAME}/uploads/{user['id']}/{uuid.uuid4()}.{ext}"
+    result = put_object(path, data, content_type)
+    record = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "storage_path": result["path"],
+        "content_type": content_type,
+        "size": result.get("size", len(data)),
+        "is_deleted": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.files.insert_one(record)
+    return {
+        "path": result["path"],
+        "url": f"/api/files/{result['path']}",
+    }
+
+
+@api.get("/files/{path:path}")
+async def download_file(path: str):
+    record = await db.files.find_one({"storage_path": path, "is_deleted": False}, {"_id": 0})
+    if not record:
+        raise HTTPException(status_code=404, detail="Fichier introuvable")
+    data, ct = get_object(path)
+    return Response(content=data, media_type=record.get("content_type", ct))
+
+
 # -------------------- Notifications --------------------
 @api.get("/notifications")
 async def list_notifications(user: dict = Depends(get_current_user)):

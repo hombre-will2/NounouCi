@@ -1,0 +1,44 @@
+{
+  "summary": "Iteration 3: Re-tested upload+files endpoints after main agent added them at server.py lines 571-608. ALL 78 backend tests pass (33/33 new features + 45/45 nounou regression). Previously skipped TestUpload tests now run and all pass.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "TestUpload": {
+      "test_upload_requires_auth": "PASS - 401 without token",
+      "test_upload_image_valid": "PASS - 200 with {path,url}",
+      "test_upload_reject_non_image": "PASS - 400 on text/plain",
+      "test_upload_reject_large": "PASS - 400 on >5MB",
+      "test_get_file": "PASS - 200 with image/* Content-Type"
+    },
+    "TestParents": "PASS 11/11 (nounou-only access, all filters: city, quartier, care_type, schedule, min_budget, search; phone/address hidden)",
+    "TestBidirectionalMatches": "PASS 11/11 (nounou->parent init, parent->nanny init, recipient-only accept, cross-notifications, phone reveal post-accept, photos enriched)",
+    "test_nounou.py": "PASS 45/45 regression"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_new_features.py",
+    "/app/backend/tests/test_nounou.py",
+    "/app/test_reports/pytest/iteration_3_results.xml",
+    "/app/test_reports/pytest/iteration_3_nounou.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "put_object/get_object still use sync `requests` inside async handlers - blocks event loop under load. Recommend httpx.AsyncClient or run_in_threadpool. Not blocking, but worth fixing before scale.",
+    "GET /api/files/{path} is public (no auth) - acceptable for profile photos but consider signed URLs or path-scoped auth if private documents are added later.",
+    "Upload size check happens after full file.read() into memory - large rejected uploads still consume memory. Consider streaming check or rely on Starlette max_request_size middleware."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (78/78)", "frontend": "not tested (skipped per request)"},
+  "test_credentials": "Dynamic test users with phones +22505{ts}xx generated per run; password Test1234.",
+  "seed_data_creation": "Dynamic users created per test run; no cleanup performed.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All backend endpoints verified working: auth, profiles, /api/parents (nounou-only), /api/nannies, bidirectional /api/matches, /api/upload, /api/files/{path:path}, /api/notifications. Both test files are stable and idempotent (unique phones per run). Frontend has not been tested in any iteration.",
+  "rca_of_the_issue": "Resolved. Main agent successfully implemented POST /api/upload (server.py:571) and GET /api/files/{path:path} (server.py:602) with proper auth, mime validation, 5MB cap, db.files persistence, and Response with media_type."
+}

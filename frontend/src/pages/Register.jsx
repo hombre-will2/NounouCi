@@ -129,7 +129,7 @@ export default function Register() {
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 className="pl-10 h-11 rounded-xl"
-                placeholder="+225 07 00 00 00 00"
+                placeholder="07 12 04 45 40 ou +225..."
               />
             </div>
             {fieldErrors.phone && <p className="text-xs text-red-600 mt-1">{fieldErrors.phone}</p>}

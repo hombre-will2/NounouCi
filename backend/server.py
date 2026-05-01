@@ -82,8 +82,20 @@ logger = logging.getLogger("nounou")
 
 # -------------------- Helpers --------------------
 def normalize_phone(phone: str) -> str:
-    """Normalize Ivorian phone to digits with optional + prefix."""
-    p = re.sub(r"[\s\-]", "", phone.strip())
+    """Normalize Ivorian phone to digits with optional + prefix.
+    Accepte plusieurs formats utilisateur :
+    - "+2250712044540" (déjà international) -> "+2250712044540"
+    - "002250712044540" (00 prefix) -> "+2250712044540"
+    - "0712044540" (local 10 chiffres CI) -> "+2250712044540"
+    - "0712 044 540" (avec espaces/tirets) -> "+2250712044540"
+    """
+    p = re.sub(r"[\s\-().]", "", phone.strip())
+    # 00xxx -> +xxx
+    if p.startswith("00"):
+        p = "+" + p[2:]
+    # Format local CI à 10 chiffres commençant par 0 (07, 05, 01) -> ajouter +225
+    if re.match(r"^0\d{9}$", p):
+        p = "+225" + p
     if not re.match(r"^\+?\d{8,15}$", p):
         raise HTTPException(status_code=422, detail="Numéro de téléphone invalide")
     return p

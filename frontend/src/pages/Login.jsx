@@ -54,7 +54,7 @@ export default function Login() {
                 data-testid="login-phone-input"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+225 07 00 00 00 00"
+                placeholder="07 12 04 45 40 ou +225..."
                 className="pl-10 h-12 rounded-xl"
                 required
               />

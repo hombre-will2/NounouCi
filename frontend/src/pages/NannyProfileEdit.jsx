@@ -1,0 +1,240 @@
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Save, Trash2 } from "lucide-react";
+import Navbar from "../components/Navbar";
+import { api, formatApiErrorDetail } from "../lib/api";
+import { useAuth } from "../contexts/AuthContext";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "../components/ui/select";
+import { Checkbox } from "../components/ui/checkbox";
+import { toast } from "sonner";
+import { QUARTIERS, AVAILABILITIES, CARE_TYPES, LANGUAGES_LIST } from "../lib/constants";
+
+const PHOTO_SUGGESTIONS = [
+  "https://images.unsplash.com/photo-1666888735928-68814027acbb?w=400&h=400&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1666891984488-8d01b35df9f6?w=400&h=400&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop&crop=faces",
+];
+
+export default function NannyProfileEdit() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    age: 25,
+    experience_years: 0,
+    quartier: "Cocody",
+    city: "Abidjan",
+    availability: "Temps plein",
+    hourly_rate: 1500,
+    bio: "",
+    photo_url: PHOTO_SUGGESTIONS[0],
+    languages: ["Français"],
+    childcare_types: [],
+  });
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    if (!user || user.role !== "nounou") {
+      navigate("/dashboard");
+      return;
+    }
+    api.get("/profile/nanny/me").then(({ data }) => {
+      if (data.profile) setForm((f) => ({ ...f, ...data.profile }));
+    });
+  }, [user, navigate]);
+
+  const validate = () => {
+    const e = {};
+    if (form.age < 18) e.age = "Min. 18 ans";
+    if (form.experience_years < 0) e.experience_years = "Doit être positif";
+    if (form.hourly_rate < 0) e.hourly_rate = "Doit être positif";
+    if (form.bio.length > 1000) e.bio = "Max. 1000 caractères";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const submit = async (ev) => {
+    ev.preventDefault();
+    if (!validate()) return;
+    setLoading(true);
+    try {
+      await api.put("/profile/nanny", form);
+      toast.success("Profil enregistré");
+      navigate("/dashboard");
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e?.response?.data?.detail));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm("Supprimer votre profil nounou ? Cette action est irréversible.")) return;
+    try {
+      await api.delete("/profile/nanny/me");
+      toast.success("Profil supprimé");
+      navigate("/dashboard");
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e?.response?.data?.detail));
+    }
+  };
+
+  const toggle = (key, value) => {
+    setForm((f) => {
+      const list = f[key] || [];
+      return list.includes(value)
+        ? { ...f, [key]: list.filter((x) => x !== value) }
+        : { ...f, [key]: [...list, value] };
+    });
+  };
+
+  return (
+    <div className="bg-paper min-h-screen">
+      <Navbar />
+      <div className="max-w-3xl mx-auto px-5 sm:px-8 py-10 fade-in">
+        <h1 className="font-display text-3xl sm:text-4xl text-gray-900 mb-2">Mon profil nounou</h1>
+        <p className="text-gray-600 mb-8">Renseignez vos informations pour être visible auprès des familles.</p>
+
+        <form onSubmit={submit} className="bg-white rounded-3xl p-6 sm:p-8 border border-warm space-y-5">
+          <div className="grid sm:grid-cols-3 gap-3">
+            <FieldNumber label="Âge" value={form.age} onChange={(v) => setForm({ ...form, age: v })} error={errors.age} testId="nanny-age" />
+            <FieldNumber label="Années d'expérience" value={form.experience_years} onChange={(v) => setForm({ ...form, experience_years: v })} error={errors.experience_years} testId="nanny-exp" />
+            <FieldNumber label="Tarif horaire (FCFA)" value={form.hourly_rate} onChange={(v) => setForm({ ...form, hourly_rate: v })} error={errors.hourly_rate} testId="nanny-rate" step={500} />
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-sm font-semibold mb-1.5 block">Quartier (Abidjan)</Label>
+              <Select value={form.quartier} onValueChange={(v) => setForm({ ...form, quartier: v })}>
+                <SelectTrigger data-testid="nanny-quartier-trigger" className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {QUARTIERS.map((q) => <SelectItem key={q} value={q}>{q}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-sm font-semibold mb-1.5 block">Disponibilité</Label>
+              <Select value={form.availability} onValueChange={(v) => setForm({ ...form, availability: v })}>
+                <SelectTrigger data-testid="nanny-avail-trigger" className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {AVAILABILITIES.map((q) => <SelectItem key={q} value={q}>{q}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-sm font-semibold mb-1.5 block">Photo de profil</Label>
+            <div className="flex gap-3 flex-wrap">
+              {PHOTO_SUGGESTIONS.map((url) => (
+                <button
+                  key={url}
+                  type="button"
+                  onClick={() => setForm({ ...form, photo_url: url })}
+                  className={`w-20 h-20 rounded-2xl overflow-hidden border-4 transition ${form.photo_url === url ? "border-terracotta" : "border-transparent opacity-70 hover:opacity-100"}`}
+                >
+                  <img src={url} alt="suggestion" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+            <Input
+              data-testid="nanny-photo-url"
+              value={form.photo_url || ""}
+              onChange={(e) => setForm({ ...form, photo_url: e.target.value })}
+              className="mt-3 h-11 rounded-xl"
+              placeholder="Ou collez une URL d'image"
+            />
+          </div>
+
+          <div>
+            <Label className="text-sm font-semibold mb-1.5 block">Bio / Présentation</Label>
+            <Textarea
+              data-testid="nanny-bio"
+              value={form.bio}
+              onChange={(e) => setForm({ ...form, bio: e.target.value })}
+              rows={4}
+              className="rounded-xl"
+              placeholder="Parlez de vous, de votre passion pour les enfants, de votre approche..."
+            />
+            <p className="text-xs text-gray-500 mt-1">{form.bio.length}/1000</p>
+          </div>
+
+          <div>
+            <Label className="text-sm font-semibold mb-2 block">Types de garde</Label>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {CARE_TYPES.map((c) => (
+                <label key={c} className="flex items-center gap-2 p-3 rounded-xl border border-warm hover:border-terracotta/40 cursor-pointer">
+                  <Checkbox
+                    data-testid={`nanny-care-${c}`}
+                    checked={form.childcare_types.includes(c)}
+                    onCheckedChange={() => toggle("childcare_types", c)}
+                  />
+                  <span className="text-sm">{c}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-sm font-semibold mb-2 block">Langues parlées</Label>
+            <div className="grid sm:grid-cols-3 gap-2">
+              {LANGUAGES_LIST.map((c) => (
+                <label key={c} className="flex items-center gap-2 p-2 rounded-xl border border-warm hover:border-sage/40 cursor-pointer">
+                  <Checkbox
+                    data-testid={`nanny-lang-${c}`}
+                    checked={form.languages.includes(c)}
+                    onCheckedChange={() => toggle("languages", c)}
+                  />
+                  <span className="text-sm">{c}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3 pt-4 border-t border-warm">
+            <Button
+              type="submit"
+              data-testid="nanny-save-btn"
+              disabled={loading}
+              className="bg-terracotta hover:bg-[#C55B3A] text-white rounded-full px-6 h-11"
+            >
+              <Save className="w-4 h-4 mr-2" /> {loading ? "Enregistrement..." : "Enregistrer"}
+            </Button>
+            <Button
+              type="button"
+              data-testid="nanny-delete-btn"
+              variant="outline"
+              onClick={handleDelete}
+              className="rounded-full text-red-600 border-red-200 hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4 mr-2" /> Supprimer mon profil
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function FieldNumber({ label, value, onChange, error, testId, step = 1 }) {
+  return (
+    <div>
+      <Label className="text-sm font-semibold mb-1.5 block">{label}</Label>
+      <Input
+        type="number"
+        data-testid={testId}
+        value={value}
+        step={step}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="h-11 rounded-xl"
+      />
+      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+    </div>
+  );
+}

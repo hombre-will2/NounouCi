@@ -1,0 +1,100 @@
+{
+  "project_name": "Nounou Connect CI",
+  "theme": "light",
+  "archetype": "1 (Organic & Earthy)",
+  "vibe": "Warm, Trustworthy, Accessible, Professional, Ivorian Localized",
+  "typography": {
+    "headings": {
+      "family": "Nunito",
+      "weights": ["400", "700", "800"],
+      "usage": "H1-H4 headings, friendly, approachable, child-safe vibe."
+    },
+    "body": {
+      "family": "Work Sans",
+      "weights": ["400", "500", "600"],
+      "usage": "Highly legible for registration forms, dashboards, and detailed profile text."
+    },
+    "rules": {
+      "h1_max": "text-4xl sm:text-5xl lg:text-6xl",
+      "tracking": "tracking-tight for headings > 32px",
+      "forbidden": ["Inter", "Roboto", "Open Sans"]
+    }
+  },
+  "colors": {
+    "background": "#FAFAF8",
+    "surface": "#FFFFFF",
+    "primary": "#D96C4A",
+    "primary_hover": "#C55B3A",
+    "secondary": "#4A7C59",
+    "accent": "#E6B953",
+    "text": {
+      "primary": "#1A1A1A",
+      "secondary": "#5C5C5C",
+      "inverse": "#FFFFFF"
+    },
+    "border": "#E5E5DF",
+    "states": {
+      "success": "#4A7C59",
+      "warning": "#E6B953",
+      "error": "#D94A4A"
+    }
+  },
+  "layout_and_spacing": {
+    "strategy": "Generous Spacing Philosophy. Use large padding (p-6, p-8) for breathing room.",
+    "marketing_page": "Mode A: The Tetris Grid. Aggressive asymmetry to feel dynamic.",
+    "dashboard": "Mode B: The Control Room Grid. Tighter gaps (gap-4 to gap-6) for data correlation (nanny profiles, history).",
+    "containers": "Containers with borders must have internal padding (p-6 or p-8) to prevent text collision."
+  },
+  "components": {
+    "cards": {
+      "default": "Flat background, 1px subtle border (border-border), no shadow.",
+      "hover": "Slight lift (-translate-y-1), subtle shadow (shadow-lg), border color darkens."
+    },
+    "buttons": {
+      "style": "Large hit areas for mobile usability, rounded-2xl or rounded-full. Soft shadows.",
+      "primary": "bg-[#D96C4A] text-white hover:bg-[#C55B3A]",
+      "secondary": "bg-[#4A7C59] text-white hover:bg-[#3d664a]"
+    },
+    "forms": {
+      "style": "Clear focus states (focus:ring-2 focus:ring-[#D96C4A]). Labels left-aligned. Use Shadcn customized.",
+      "inputs": "rounded-xl border-[#E5E5DF] bg-white px-4 py-2"
+    },
+    "navigation": {
+      "style": "Glassmorphism for landing page sticky header (backdrop-blur-xl bg-white/80). Solid white for dashboard."
+    }
+  },
+  "media": [
+    {
+      "category": "hero_background",
+      "url": "https://images.unsplash.com/photo-1773693740871-cbb704738f66?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NjZ8MHwxfHNlYXJjaHwxfHx3YXJtJTIwdGVycmFjb3R0YSUyMHNhZ2UlMjBhYnN0cmFjdCUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzc3NjY1ODQ1fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Abstract flowing waves of green and orange colors for soft landing page background or section breaks."
+    },
+    {
+      "category": "hero_image_family",
+      "url": "https://images.unsplash.com/photo-1577897113176-6888367369bf?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2Mzl8MHwxfHNlYXJjaHwyfHxhZnJpY2FuJTIwZmFtaWx5JTIwc21pbGluZ3xlbnwwfHx8fDE3Nzc2NjU4MzR8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Happy African family of three, perfect for parent targeting sections and trust building."
+    },
+    {
+      "category": "nanny_playing",
+      "url": "https://images.unsplash.com/photo-1666888735928-68814027acbb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNzl8MHwxfHNlYXJjaHwxfHxibGFjayUyMHdvbWFuJTIwbmFubnklMjBwbGF5aW5nJTIwd2l0aCUyMGNoaWxkfGVufDB8fHx8MTc3NzY2NTgzNXww&ixlib=rb-4.1.0&q=85",
+      "description": "Black woman and baby playing on a blanket, ideal for nanny profiles or matching sections."
+    },
+    {
+      "category": "nanny_outdoor",
+      "url": "https://images.unsplash.com/photo-1666891984488-8d01b35df9f6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNzl8MHwxfHNlYXJjaHwyfHxibGFjayUyMHdvbWFuJTIwbmFubnklMjBwbGF5aW5nJTIwd2l0aCUyMGNoaWxkfGVufDB8fHx8MTc3NzY2NTgzNXww&ixlib=rb-4.1.0&q=85",
+      "description": "Black woman playing with child outdoors, use for active lifestyle/childcare representation."
+    },
+    {
+      "category": "abidjan_context",
+      "url": "https://images.unsplash.com/photo-1552710307-8d1c604d6319?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTN8MHwxfHNlYXJjaHwyfHxhYmlkamFuJTIwaXZvcnklMjBjb2FzdCUyMGNpdHl8ZW58MHx8fHwxNzc3NjY1ODQ1fDA&ixlib=rb-4.1.0&q=85",
+      "description": "People walking during daytime in Abidjan, grounds the app locally for Ivory Coast users."
+    }
+  ],
+  "technical_instructions": {
+    "testing": "CRITICAL: All interactive and key informational elements MUST include a data-testid attribute in kebab-case (e.g., data-testid='login-button', data-testid='nanny-profile-card').",
+    "accessibility": "Ensure 4.5:1 contrast ratio. Explicitly set text color on hover. Focus states must have higher contrast.",
+    "file_extensions": "Use .js files (not .tsx) as specified in the rules.",
+    "icons": "Use lucide-react (default). For dense UI, prefer phosphor-icons if installed.",
+    "components_library": "Shadcn UI must be customized. Strip default Vercel-look borders and apply custom border radii and colors. Do not build Datepicker or Dialog from scratch."
+  }
+}

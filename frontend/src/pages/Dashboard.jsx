@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Search, UserCircle, ClipboardList, Bell, Edit3, Phone, MapPin, Briefcase } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../contexts/AuthContext";
-import { api } from "../lib/api";
+import { api, API } from "../lib/api";
 import { Button } from "../components/ui/button";
 
 export default function Dashboard() {

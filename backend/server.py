@@ -449,11 +449,15 @@ async def shutdown():
 
 app.include_router(api)
 
-cors_origins_env = os.environ.get("CORS_ORIGINS", "*")
-allow_origins = ["*"] if cors_origins_env == "*" else cors_origins_env.split(",")
+# Build CORS allow list. With allow_credentials=True we cannot use wildcard.
+frontend_url = os.environ.get("FRONTEND_URL", "")
+cors_origins_env = os.environ.get("CORS_ORIGINS", "")
+explicit_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip() and o.strip() != "*"]
+allow_origins = list({*explicit_origins, frontend_url, "http://localhost:3000"} - {""})
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allow_origins,
+    allow_origins=allow_origins or ["http://localhost:3000"],
+    allow_origin_regex=r"https://.*\.preview\.emergentagent\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

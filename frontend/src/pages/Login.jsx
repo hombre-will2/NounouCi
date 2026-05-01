@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, Phone, Lock } from "lucide-react";
+import { Phone, Lock } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { formatApiErrorDetail } from "../lib/api";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { toast } from "sonner";
+import Logo from "../components/Logo";
 
 export default function Login() {
   const navigate = useNavigate();

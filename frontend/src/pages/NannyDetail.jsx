@@ -10,6 +10,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "../components/ui/dialog";
 import { toast } from "sonner";
+import AdSlot from "../components/AdSlot";
 
 export default function NannyDetail() {
   const { id } = useParams();
@@ -88,7 +89,7 @@ export default function NannyDetail() {
                   {nanny.first_name} {nanny.last_name}
                 </div>
                 <div className="text-sm text-gray-600 mb-3">{nanny.age} ans</div>
-                <div className="text-3xl font-display text-terracotta mb-1">{nanny.hourly_rate} <span className="text-sm font-normal text-gray-600">FCFA/h</span></div>
+                <div className="text-3xl font-display text-terracotta mb-1">{nanny.hourly_rate?.toLocaleString("fr-FR")} <span className="text-sm font-normal text-gray-600">FCFA/mois</span></div>
               </div>
             </div>
           </div>
@@ -170,6 +171,7 @@ export default function NannyDetail() {
               Présentez-vous brièvement et expliquez vos besoins à {nanny.first_name}.
             </DialogDescription>
           </DialogHeader>
+          <AdSlot placement="pre_contact" variant="card" />
           <Textarea
             data-testid="match-message-input"
             value={message}

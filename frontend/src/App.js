@@ -15,6 +15,7 @@ import SearchParents from "./pages/SearchParents";
 import ParentDetail from "./pages/ParentDetail";
 import MatchesPage from "./pages/MatchesPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import AdminAds from "./pages/AdminAds";
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -94,6 +95,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <NotificationsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/ads"
+              element={
+                <ProtectedRoute>
+                  <AdminAds />
                 </ProtectedRoute>
               }
             />

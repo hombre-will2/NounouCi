@@ -10,6 +10,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "../components/ui/dialog";
 import { toast } from "sonner";
+import AdSlot from "../components/AdSlot";
 
 export default function ParentDetail() {
   const { id } = useParams();
@@ -104,7 +105,7 @@ export default function ParentDetail() {
                 <Info icon={<Users className="w-4 h-4 text-sage" />} label="Enfants" value={`${parent.children_count} enfant(s)`} />
                 <Info icon={<Clock className="w-4 h-4 text-accent" />} label="Horaires" value={parent.schedule} />
                 <Info label="Type de garde" value={parent.care_type} />
-                <Info icon={<Wallet className="w-4 h-4 text-terracotta" />} label="Budget max" value={`${parent.budget_max} FCFA/h`} />
+                <Info icon={<Wallet className="w-4 h-4 text-terracotta" />} label="Budget mensuel max" value={`${parent.budget_max?.toLocaleString("fr-FR")} FCFA`} />
                 {parent.phone && <Info icon={<Phone className="w-4 h-4 text-sage" />} label="Téléphone" value={parent.phone} />}
                 {parent.address && <Info icon={<MapPin className="w-4 h-4" />} label="Adresse" value={parent.address} />}
               </div>
@@ -153,6 +154,7 @@ export default function ParentDetail() {
               Présentez-vous brièvement et expliquez pourquoi votre profil correspond à leurs besoins.
             </DialogDescription>
           </DialogHeader>
+          <AdSlot placement="pre_contact" variant="card" />
           <Textarea
             data-testid="parent-match-message"
             value={message}

@@ -143,11 +143,11 @@ export default function SearchNannies() {
             <Label className="text-xs font-semibold mb-1 block">Tarif max</Label>
             <Input
               type="number"
-              step={500}
+              step={5000}
               data-testid="search-max-rate"
               value={filters.max_rate}
               onChange={(e) => setFilters({ ...filters, max_rate: e.target.value })}
-              placeholder="FCFA"
+              placeholder="FCFA/mois"
               className="h-11 rounded-xl"
             />
           </div>
@@ -187,7 +187,7 @@ export default function SearchNannies() {
                     </div>
                   )}
                   <div className="absolute top-3 right-3 bg-white px-3 py-1 rounded-full text-sm font-bold text-terracotta shadow">
-                    {n.hourly_rate} FCFA/h
+                    {n.hourly_rate?.toLocaleString("fr-FR")} FCFA/mois
                   </div>
                 </div>
                 <div className="p-5 flex flex-col gap-2 flex-1">

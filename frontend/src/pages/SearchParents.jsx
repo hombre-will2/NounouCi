@@ -144,11 +144,11 @@ export default function SearchParents() {
             <Label className="text-xs font-semibold mb-1 block">Budget min</Label>
             <Input
               type="number"
-              step={500}
+              step={5000}
               data-testid="parents-budget"
               value={filters.min_budget}
               onChange={(e) => setFilters({ ...filters, min_budget: e.target.value })}
-              placeholder="FCFA"
+              placeholder="FCFA/mois"
               className="h-11 rounded-xl"
             />
           </div>
@@ -190,7 +190,7 @@ export default function SearchParents() {
                     </div>
                   )}
                   <div className="absolute top-3 right-3 bg-white px-3 py-1 rounded-full text-sm font-bold text-terracotta shadow">
-                    {p.budget_max} FCFA/h max
+                    {p.budget_max?.toLocaleString("fr-FR")} FCFA/mois max
                   </div>
                 </div>
                 <div className="p-5 flex flex-col gap-2 flex-1">

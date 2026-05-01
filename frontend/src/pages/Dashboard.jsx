@@ -116,13 +116,13 @@ export default function Dashboard() {
                   <>
                     <InfoRow icon={<Briefcase className="w-4 h-4" />} label="Expérience" value={`${profile.experience_years} an(s)`} />
                     <InfoRow label="Disponibilité" value={profile.availability} />
-                    <InfoRow label="Tarif horaire" value={`${profile.hourly_rate} FCFA`} />
+                    <InfoRow label="Tarif mensuel" value={`${profile.hourly_rate?.toLocaleString("fr-FR")} FCFA`} />
                   </>
                 ) : (
                   <>
                     <InfoRow label="Type de garde" value={profile.care_type} />
                     <InfoRow label="Horaires" value={profile.schedule} />
-                    <InfoRow label="Budget max." value={`${profile.budget_max} FCFA/h`} />
+                    <InfoRow label="Budget mensuel max." value={`${profile.budget_max?.toLocaleString("fr-FR")} FCFA`} />
                   </>
                 )}
                 </div>

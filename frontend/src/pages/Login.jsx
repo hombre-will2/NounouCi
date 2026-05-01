@@ -21,9 +21,10 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      await login(phone, password);
+      const u = await login(phone, password);
       toast.success("Connexion réussie");
-      navigate("/dashboard");
+      if (u.role === "admin") navigate("/admin/ads");
+      else navigate("/dashboard");
     } catch (e) {
       const msg = formatApiErrorDetail(e?.response?.data?.detail) || e.message;
       setError(msg);
@@ -37,10 +38,7 @@ export default function Login() {
     <div className="min-h-screen bg-warm-paper flex items-center justify-center px-5 py-10">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 sm:p-10 border border-warm fade-in">
         <Link to="/" className="flex items-center gap-2 justify-center mb-6">
-          <div className="w-11 h-11 rounded-xl gradient-terracotta flex items-center justify-center">
-            <Heart className="w-6 h-6 text-white" fill="white" />
-          </div>
-          <span className="font-display text-2xl">Nounou<span className="text-terracotta">CI</span></span>
+          <Logo size={44} />
         </Link>
         <h1 className="font-display text-3xl text-gray-900 mb-2 text-center">Bon retour !</h1>
         <p className="text-gray-600 text-center mb-8">Connectez-vous à votre compte</p>

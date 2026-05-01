@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, Phone, Lock, User2, Baby, HomeIcon } from "lucide-react";
+import { Phone, Lock, Baby, HomeIcon } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { formatApiErrorDetail } from "../lib/api";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { toast } from "sonner";
+import Logo from "../components/Logo";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -54,10 +55,7 @@ export default function Register() {
     <div className="min-h-screen bg-warm-paper flex items-center justify-center px-5 py-10">
       <div className="w-full max-w-lg bg-white rounded-3xl shadow-xl p-8 sm:p-10 border border-warm fade-in">
         <Link to="/" className="flex items-center gap-2 justify-center mb-6">
-          <div className="w-11 h-11 rounded-xl gradient-terracotta flex items-center justify-center">
-            <Heart className="w-6 h-6 text-white" fill="white" />
-          </div>
-          <span className="font-display text-2xl">Nounou<span className="text-terracotta">CI</span></span>
+          <Logo size={44} />
         </Link>
         <h1 className="font-display text-3xl text-gray-900 mb-2 text-center">Créer un compte</h1>
         <p className="text-gray-600 text-center mb-6">Rejoignez la communauté</p>

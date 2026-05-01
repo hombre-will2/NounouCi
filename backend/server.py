@@ -154,7 +154,7 @@ RoleType = Literal["nounou", "parent"]
 class RegisterIn(BaseModel):
     phone: str
     password: str = Field(min_length=6)
-    role: RoleType
+    role: Literal["nounou", "parent"]
     first_name: str = Field(min_length=1)
     last_name: str = Field(min_length=1)
 
@@ -199,6 +199,22 @@ class MatchCreateIn(BaseModel):
 
 class MatchUpdateIn(BaseModel):
     status: Literal["accepted", "declined"]
+
+
+class AdIn(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+    image_url: str = Field(min_length=1)
+    link_url: str = ""
+    placement: Literal["home", "pre_contact"]
+    active: bool = True
+
+
+class AdUpdateIn(BaseModel):
+    title: Optional[str] = None
+    image_url: Optional[str] = None
+    link_url: Optional[str] = None
+    placement: Optional[Literal["home", "pre_contact"]] = None
+    active: Optional[bool] = None
 
 
 # -------------------- Auth Endpoints --------------------
@@ -633,6 +649,60 @@ async def mark_all_read(user: dict = Depends(get_current_user)):
     return {"ok": True}
 
 
+# -------------------- Ads --------------------
+async def require_admin(user: dict = Depends(get_current_user)) -> dict:
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Réservé à l'administrateur")
+    return user
+
+
+@api.post("/ads")
+async def create_ad(body: AdIn, _admin: dict = Depends(require_admin)):
+    doc = body.model_dump()
+    doc["id"] = str(uuid.uuid4())
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    doc["updated_at"] = doc["created_at"]
+    await db.ads.insert_one(doc)
+    doc.pop("_id", None)
+    return {"ad": doc}
+
+
+@api.get("/ads")
+async def list_ads_admin(_admin: dict = Depends(require_admin)):
+    cursor = db.ads.find({}, {"_id": 0}).sort("created_at", -1)
+    return {"ads": await cursor.to_list(200)}
+
+
+@api.put("/ads/{ad_id}")
+async def update_ad(ad_id: str, body: AdUpdateIn, _admin: dict = Depends(require_admin)):
+    patch = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not patch:
+        raise HTTPException(status_code=400, detail="Aucune modification")
+    patch["updated_at"] = datetime.now(timezone.utc).isoformat()
+    res = await db.ads.update_one({"id": ad_id}, {"$set": patch})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Pub introuvable")
+    ad = await db.ads.find_one({"id": ad_id}, {"_id": 0})
+    return {"ad": ad}
+
+
+@api.delete("/ads/{ad_id}")
+async def delete_ad(ad_id: str, _admin: dict = Depends(require_admin)):
+    res = await db.ads.delete_one({"id": ad_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Pub introuvable")
+    return {"ok": True}
+
+
+@api.get("/ads/active")
+async def public_active_ads(placement: Optional[str] = None):
+    q: dict = {"active": True}
+    if placement:
+        q["placement"] = placement
+    cursor = db.ads.find(q, {"_id": 0}).sort("created_at", -1)
+    return {"ads": await cursor.to_list(50)}
+
+
 # -------------------- Stats / Public --------------------
 @api.get("/stats")
 async def stats():
@@ -647,6 +717,35 @@ async def root():
     return {"message": "Nounou Connect CI API"}
 
 
+async def seed_admin():
+    admin_phone = os.environ.get("ADMIN_PHONE", "+2250100000000")
+    admin_password = os.environ.get("ADMIN_PASSWORD", "Admin1234")
+    try:
+        admin_phone = normalize_phone(admin_phone)
+    except HTTPException:
+        return
+    existing = await db.users.find_one({"phone": admin_phone}, {"_id": 0})
+    if existing is None:
+        await db.users.insert_one({
+            "id": str(uuid.uuid4()),
+            "phone": admin_phone,
+            "password_hash": hash_password(admin_password),
+            "role": "admin",
+            "first_name": "Admin",
+            "last_name": "NounouCI",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+        logger.info(f"Admin seeded: {admin_phone}")
+    else:
+        # Update password if changed in env, ensure role=admin
+        if existing.get("role") != "admin" or not verify_password(admin_password, existing["password_hash"]):
+            await db.users.update_one(
+                {"phone": admin_phone},
+                {"$set": {"role": "admin", "password_hash": hash_password(admin_password)}},
+            )
+            logger.info(f"Admin updated: {admin_phone}")
+
+
 # -------------------- Startup --------------------
 @app.on_event("startup")
 async def startup():
@@ -659,6 +758,7 @@ async def startup():
     await db.matches.create_index([("parent_id", 1), ("nanny_id", 1)])
     await db.notifications.create_index([("user_id", 1), ("created_at", -1)])
     await db.files.create_index("storage_path")
+    await db.ads.create_index([("placement", 1), ("active", 1)])
     try:
         if init_storage():
             logger.info("Storage initialized")
@@ -666,6 +766,7 @@ async def startup():
             logger.warning("Storage NOT initialized (missing EMERGENT_LLM_KEY)")
     except Exception as e:
         logger.error(f"Storage init failed: {e}")
+    await seed_admin()
     logger.info("Indexes ready")
 
 

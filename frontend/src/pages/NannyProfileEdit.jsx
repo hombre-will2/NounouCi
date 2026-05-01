@@ -25,7 +25,7 @@ export default function NannyProfileEdit() {
     quartier: "Cocody",
     city: "Abidjan",
     availability: "Temps plein",
-    hourly_rate: 1500,
+    hourly_rate: 50000,
     bio: "",
     photo_url: "",
     languages: ["Français"],
@@ -120,7 +120,7 @@ export default function NannyProfileEdit() {
           <div className="grid sm:grid-cols-3 gap-3">
             <FieldNumber label="Âge" value={form.age} onChange={(v) => setForm({ ...form, age: v })} error={errors.age} testId="nanny-age" />
             <FieldNumber label="Années d'expérience" value={form.experience_years} onChange={(v) => setForm({ ...form, experience_years: v })} error={errors.experience_years} testId="nanny-exp" />
-            <FieldNumber label="Tarif horaire (FCFA)" value={form.hourly_rate} onChange={(v) => setForm({ ...form, hourly_rate: v })} error={errors.hourly_rate} testId="nanny-rate" step={500} />
+            <FieldNumber label="Tarif mensuel (FCFA)" value={form.hourly_rate} onChange={(v) => setForm({ ...form, hourly_rate: v })} error={errors.hourly_rate} testId="nanny-rate" step={5000} />
           </div>
 
           <div className="grid sm:grid-cols-2 gap-3">

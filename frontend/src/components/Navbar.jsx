@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Heart, Bell, LogOut, User2, Menu, X } from "lucide-react";
+import { Bell, LogOut, User2, Menu, X, ShieldCheck } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { api } from "../lib/api";
 import { Button } from "./ui/button";
+import Logo from "./Logo";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -55,12 +56,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-5 sm:px-8">
         <div className="flex items-center justify-between h-16">
           <Link to="/" data-testid="navbar-logo" className="flex items-center gap-2 group">
-            <div className="w-9 h-9 rounded-xl gradient-terracotta flex items-center justify-center">
-              <Heart className="w-5 h-5 text-white" fill="white" />
-            </div>
-            <span className="font-display text-xl text-gray-900">
-              Nounou<span className="text-terracotta">CI</span>
-            </span>
+            <Logo size={36} />
           </Link>
 
           <div className="hidden md:flex items-center gap-1">
@@ -70,6 +66,9 @@ export default function Navbar() {
             )}
             {user?.role === "nounou" && (
               <NavLink to="/familles" testId="nav-parents">Familles à la recherche</NavLink>
+            )}
+            {user?.role === "admin" && (
+              <NavLink to="/admin/ads" testId="nav-admin">Admin</NavLink>
             )}
             {user && (
               <>
@@ -98,7 +97,11 @@ export default function Navbar() {
                   )}
                 </Link>
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-50">
-                  <User2 className="w-4 h-4 text-terracotta" />
+                  {user.role === "admin" ? (
+                    <ShieldCheck className="w-4 h-4 text-terracotta" />
+                  ) : (
+                    <User2 className="w-4 h-4 text-terracotta" />
+                  )}
                   <span className="text-sm font-medium text-gray-800">
                     {user.first_name}
                   </span>

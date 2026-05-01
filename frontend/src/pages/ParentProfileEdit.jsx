@@ -27,7 +27,7 @@ export default function ParentProfileEdit() {
     needs_description: "",
     schedule: "Journée (8h-18h)",
     care_type: "Bébé (0-2 ans)",
-    budget_max: 2000,
+    budget_max: 80000,
     photo_url: "",
     children_photos: [],
   });
@@ -193,10 +193,10 @@ export default function ParentProfileEdit() {
           </div>
 
           <div>
-            <Label className="text-sm font-semibold mb-1.5 block">Budget maximum (FCFA/heure)</Label>
+            <Label className="text-sm font-semibold mb-1.5 block">Budget mensuel maximum (FCFA)</Label>
             <Input
               type="number"
-              step={500}
+              step={5000}
               data-testid="parent-budget"
               value={form.budget_max}
               onChange={(e) => setForm({ ...form, budget_max: Number(e.target.value) })}

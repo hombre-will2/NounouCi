@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { Heart, Search, Shield, Star, MapPin, Users, CheckCircle2, ArrowRight, Globe2 } from "lucide-react";
+import { Search, Shield, Star, MapPin, Users, CheckCircle2, ArrowRight, Globe2 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { Button } from "../components/ui/button";
 import { api } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
+import AdSlot from "../components/AdSlot";
+import Logo from "../components/Logo";
 
 export default function Landing() {
   const { user, loading: authLoading } = useAuth();
@@ -14,8 +16,10 @@ export default function Landing() {
     api.get("/stats").then(({ data }) => setStats(data)).catch(() => {});
   }, []);
 
-  // Redirige les utilisateurs connectés vers leur tableau de bord
-  if (!authLoading && user) return <Navigate to="/dashboard" replace />;
+  // Redirige les utilisateurs connectés vers leur tableau de bord (ou admin)
+  if (!authLoading && user) {
+    return <Navigate to={user.role === "admin" ? "/admin/ads" : "/dashboard"} replace />;
+  }
 
   return (
     <div className="bg-warm-paper min-h-screen">
@@ -101,6 +105,9 @@ export default function Landing() {
       </section>
 
       {/* Process */}
+      <section className="max-w-7xl mx-auto px-5 sm:px-8 pt-4">
+        <AdSlot placement="home" variant="banner" />
+      </section>
       <section className="max-w-7xl mx-auto px-5 sm:px-8 py-20">
         <div className="text-center mb-14">
           <div className="text-sm font-bold text-sage uppercase tracking-widest mb-3">Comment ça marche</div>
@@ -185,7 +192,7 @@ export default function Landing() {
 
       <footer className="border-t border-warm mt-10 py-8 text-center text-sm text-gray-500">
         <div className="flex items-center justify-center gap-2 mb-2">
-          <Heart className="w-4 h-4 text-terracotta" fill="currentColor" />
+          <Logo size={28} withWordmark={false} />
           <span className="font-display font-bold text-gray-700">NounouCI</span>
         </div>
         <p>Plateforme de mise en relation nounous & familles · Côte d'Ivoire</p>

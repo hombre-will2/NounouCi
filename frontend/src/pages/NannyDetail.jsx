@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { MapPin, Briefcase, Phone, Globe2, Heart, ArrowLeft } from "lucide-react";
+import { MapPin, Briefcase, Phone, Globe2, Heart, ArrowLeft, Calendar, Users } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { api, API, formatApiErrorDetail } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
@@ -133,6 +133,69 @@ export default function NannyDetail() {
                       </span>
                     ))}
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* CV - Expériences précédentes */}
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-warm">
+              <div className="flex items-center gap-2 mb-4">
+                <Briefcase className="w-5 h-5 text-sage" />
+                <h2 className="font-display text-2xl text-gray-900">Expériences professionnelles</h2>
+              </div>
+              <p className="text-xs text-gray-500 mb-5">
+                Référez-vous aux foyers ci-dessous avant de prendre votre décision.
+                Vous pouvez les contacter pour obtenir un retour direct sur le travail de {nanny.first_name}.
+              </p>
+
+              {!nanny.previous_experiences?.length ? (
+                <div data-testid="nanny-cv-empty" className="text-sm text-gray-500 italic bg-orange-50/40 rounded-xl p-4 text-center">
+                  Cette nounou n'a pas encore renseigné ses expériences précédentes.
+                </div>
+              ) : (
+                <div className="space-y-4" data-testid="nanny-cv-list">
+                  {nanny.previous_experiences.map((exp, i) => (
+                    <div
+                      key={i}
+                      data-testid={`nanny-cv-${i}`}
+                      className="relative pl-6 border-l-2 border-sage/30 pb-4 last:pb-0"
+                    >
+                      <span className="absolute left-[-7px] top-1 w-3 h-3 rounded-full bg-sage" />
+                      <div className="flex items-baseline justify-between flex-wrap gap-2 mb-1">
+                        <h3 className="font-display text-lg text-gray-900">
+                          {exp.family_name || "Foyer privé"}
+                        </h3>
+                        {(exp.start_date || exp.end_date) && (
+                          <span className="text-xs text-gray-500 flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {exp.start_date}{exp.start_date && exp.end_date ? " — " : ""}{exp.end_date}
+                          </span>
+                        )}
+                      </div>
+                      {exp.children_count != null && (
+                        <div className="text-xs text-gray-600 flex items-center gap-1 mb-1.5">
+                          <Users className="w-3 h-3 text-sage" />
+                          {exp.children_count} enfant(s)
+                        </div>
+                      )}
+                      {exp.description && (
+                        <p className="text-sm text-gray-700 leading-relaxed mb-2">{exp.description}</p>
+                      )}
+                      {exp.household_phone && (
+                        <div className="inline-flex items-center gap-1.5 text-sm text-sage font-semibold bg-green-50 px-3 py-1 rounded-full border border-sage/20">
+                          <Phone className="w-3.5 h-3.5" />
+                          <a
+                            href={`tel:${exp.household_phone}`}
+                            data-testid={`nanny-cv-phone-${i}`}
+                            className="hover:underline"
+                          >
+                            {exp.household_phone}
+                          </a>
+                          <span className="text-[10px] uppercase tracking-wider text-gray-500 ml-1">référence</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

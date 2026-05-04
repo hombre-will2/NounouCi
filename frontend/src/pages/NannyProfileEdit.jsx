@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Save, Trash2 } from "lucide-react";
+import { Save, Trash2, Plus, Briefcase } from "lucide-react";
 import Navbar from "../components/Navbar";
 import ImageUpload from "../components/ImageUpload";
 import { api, formatApiErrorDetail } from "../lib/api";
@@ -30,6 +30,7 @@ export default function NannyProfileEdit() {
     photo_url: "",
     languages: ["Français"],
     childcare_types: [],
+    previous_experiences: [],
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -91,6 +92,31 @@ export default function NannyProfileEdit() {
         ? { ...f, [key]: list.filter((x) => x !== value) }
         : { ...f, [key]: [...list, value] };
     });
+  };
+
+  const addExperience = () => {
+    setForm((f) => ({
+      ...f,
+      previous_experiences: [
+        ...(f.previous_experiences || []),
+        { family_name: "", household_phone: "", start_date: "", end_date: "", description: "", children_count: 1 },
+      ],
+    }));
+  };
+
+  const updateExperience = (idx, field, value) => {
+    setForm((f) => {
+      const list = [...(f.previous_experiences || [])];
+      list[idx] = { ...list[idx], [field]: value };
+      return { ...f, previous_experiences: list };
+    });
+  };
+
+  const removeExperience = (idx) => {
+    setForm((f) => ({
+      ...f,
+      previous_experiences: (f.previous_experiences || []).filter((_, i) => i !== idx),
+    }));
   };
 
   const isAbidjan = form.city === "Abidjan";
@@ -209,6 +235,108 @@ export default function NannyProfileEdit() {
                 </label>
               ))}
             </div>
+          </div>
+
+          {/* Expériences précédentes (CV) */}
+          <div className="pt-2">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <Label className="text-sm font-semibold flex items-center gap-1.5">
+                  <Briefcase className="w-4 h-4 text-sage" /> Mes expériences précédentes
+                </Label>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Ajoutez les foyers où vous avez travaillé. Les particuliers verront ces références avant de vous contacter.
+                </p>
+              </div>
+              <Button
+                type="button"
+                onClick={addExperience}
+                data-testid="nanny-add-exp"
+                size="sm"
+                variant="outline"
+                className="rounded-full border-sage text-sage hover:bg-green-50"
+              >
+                <Plus className="w-4 h-4 mr-1" /> Ajouter
+              </Button>
+            </div>
+
+            {(form.previous_experiences || []).length === 0 ? (
+              <div className="text-sm text-gray-500 bg-orange-50/50 border border-warm rounded-xl p-4 text-center">
+                Aucune expérience ajoutée. Cliquez sur "Ajouter" pour renseigner vos précédents employeurs.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {(form.previous_experiences || []).map((exp, idx) => (
+                  <div
+                    key={idx}
+                    data-testid={`nanny-exp-${idx}`}
+                    className="bg-orange-50/40 border border-warm rounded-2xl p-4 space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-sage uppercase tracking-wider">Expérience #{idx + 1}</span>
+                      <Button
+                        type="button"
+                        onClick={() => removeExperience(idx)}
+                        data-testid={`nanny-exp-remove-${idx}`}
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-600 hover:bg-red-50 rounded-full h-8 w-8 p-0"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      <Input
+                        data-testid={`nanny-exp-family-${idx}`}
+                        value={exp.family_name || ""}
+                        onChange={(e) => updateExperience(idx, "family_name", e.target.value)}
+                        placeholder="Nom du foyer (ex: Famille Konan)"
+                        className="h-10 rounded-xl"
+                      />
+                      <Input
+                        data-testid={`nanny-exp-phone-${idx}`}
+                        value={exp.household_phone || ""}
+                        onChange={(e) => updateExperience(idx, "household_phone", e.target.value)}
+                        placeholder="Téléphone du foyer (référence)"
+                        className="h-10 rounded-xl"
+                      />
+                    </div>
+                    <div className="grid sm:grid-cols-3 gap-2">
+                      <Input
+                        data-testid={`nanny-exp-start-${idx}`}
+                        value={exp.start_date || ""}
+                        onChange={(e) => updateExperience(idx, "start_date", e.target.value)}
+                        placeholder="Début (ex: Jan 2022)"
+                        className="h-10 rounded-xl"
+                      />
+                      <Input
+                        data-testid={`nanny-exp-end-${idx}`}
+                        value={exp.end_date || ""}
+                        onChange={(e) => updateExperience(idx, "end_date", e.target.value)}
+                        placeholder="Fin (ex: Déc 2023, En cours)"
+                        className="h-10 rounded-xl"
+                      />
+                      <Input
+                        type="number"
+                        data-testid={`nanny-exp-children-${idx}`}
+                        value={exp.children_count ?? ""}
+                        onChange={(e) => updateExperience(idx, "children_count", e.target.value === "" ? null : Number(e.target.value))}
+                        placeholder="Nb enfants"
+                        className="h-10 rounded-xl"
+                      />
+                    </div>
+                    <Textarea
+                      data-testid={`nanny-exp-desc-${idx}`}
+                      value={exp.description || ""}
+                      onChange={(e) => updateExperience(idx, "description", e.target.value)}
+                      placeholder="Résumé du poste (âge des enfants, tâches, points forts...)"
+                      rows={2}
+                      className="rounded-xl"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-3 pt-4 border-t border-warm">

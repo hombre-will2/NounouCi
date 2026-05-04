@@ -176,17 +176,27 @@ class LoginIn(BaseModel):
     password: str
 
 
+class PreviousExperience(BaseModel):
+    family_name: str = Field(default="", max_length=120)
+    household_phone: str = Field(min_length=6, max_length=30)
+    start_date: str = Field(default="", max_length=40)  # ex: "Janvier 2022"
+    end_date: str = Field(default="", max_length=40)  # ex: "En cours" ou "Déc 2023"
+    description: str = Field(default="", max_length=500)
+    children_count: Optional[int] = None
+
+
 class NannyProfileIn(BaseModel):
     age: int = Field(ge=18, le=80)
     experience_years: int = Field(ge=0, le=60)
     quartier: str
     city: str = "Abidjan"
     availability: str  # "Temps plein" | "Temps partiel" | "Garde de nuit" | etc.
-    hourly_rate: int = Field(ge=0)  # FCFA
+    hourly_rate: int = Field(ge=0)  # FCFA mensuel
     bio: str = ""
     photo_url: Optional[str] = None
     languages: List[str] = []
     childcare_types: List[str] = []  # Bébé, Enfant, Aide aux devoirs
+    previous_experiences: List[PreviousExperience] = []
 
 
 class ParentProfileIn(BaseModel):

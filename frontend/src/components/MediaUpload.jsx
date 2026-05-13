@@ -38,14 +38,14 @@ export default function MediaUpload({
     : null;
 
   const accept = allowVideo
-    ? "image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
+    ? "image/jpeg,image/png,image/webp,video/*"
     : "image/jpeg,image/png,image/webp";
 
   const handleSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const isImage = ["image/jpeg", "image/png", "image/webp", "image/jpg"].includes(file.type);
-    const isVideo = ["video/mp4", "video/webm", "video/quicktime"].includes(file.type);
+    const isVideo = (file.type || "").startsWith("video/");
     if (!isImage && !(allowVideo && isVideo)) {
       toast.error(allowVideo ? "Format invalide (image ou vidéo)" : "Format invalide (JPEG, PNG ou WebP)");
       return;

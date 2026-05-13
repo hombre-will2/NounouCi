@@ -117,7 +117,7 @@ def create_access_token(user_id: str, phone: str, role: str) -> str:
         "sub": user_id,
         "phone": phone,
         "role": role,
-        "exp": datetime.now(timezone.utc) + timedelta(days=7),
+        "exp": datetime.now(timezone.utc) + timedelta(days=30),
         "type": "access",
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
@@ -130,7 +130,7 @@ def set_auth_cookie(response: Response, token: str) -> None:
         httponly=True,
         secure=False,
         samesite="lax",
-        max_age=7 * 24 * 3600,
+        max_age=30 * 24 * 3600,
         path="/",
     )
 
@@ -629,30 +629,48 @@ async def delete_match(match_id: str, user: dict = Depends(get_current_user)):
 
 
 # -------------------- Upload / Files --------------------
-ALLOWED_MIME = {
-    "image/jpeg", "image/png", "image/webp", "image/jpg",
-    "video/mp4", "video/webm", "video/quicktime", "video/ogg",
-}
-MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB (vidéos)
+ALLOWED_IMAGE_MIME = {"image/jpeg", "image/png", "image/webp", "image/jpg"}
+MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB
+
+
+def _is_video_mime(ct: str) -> bool:
+    return ct.startswith("video/")
+
+
+def _is_image_mime(ct: str) -> bool:
+    return ct in ALLOWED_IMAGE_MIME
 
 
 @api.post("/upload")
 async def upload_file(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
     content_type = (file.content_type or "").lower()
-    if content_type not in ALLOWED_MIME:
-        raise HTTPException(status_code=400, detail="Format non autorisé (JPEG/PNG/WebP/MP4/WebM/MOV)")
+    is_video = _is_video_mime(content_type)
+    is_image = _is_image_mime(content_type)
+    if not (is_video or is_image):
+        raise HTTPException(status_code=400, detail="Format non autorisé (image ou vidéo uniquement)")
     data = await file.read()
     if len(data) > MAX_UPLOAD_SIZE:
         raise HTTPException(status_code=400, detail="Fichier trop volumineux (max 50 Mo)")
-    is_video = content_type.startswith("video/")
     if is_video:
-        ext = "mp4"
-        if "webm" in content_type:
-            ext = "webm"
-        elif "quicktime" in content_type:
-            ext = "mov"
-        elif "ogg" in content_type:
-            ext = "ogv"
+        # Conserver l'extension d'origine si possible, sinon dériver du MIME
+        orig_name = (file.filename or "").lower()
+        orig_ext = orig_name.rsplit(".", 1)[-1] if "." in orig_name else ""
+        if orig_ext and len(orig_ext) <= 5 and orig_ext.isalnum():
+            ext = orig_ext
+        else:
+            ext = "mp4"
+            if "webm" in content_type:
+                ext = "webm"
+            elif "quicktime" in content_type:
+                ext = "mov"
+            elif "ogg" in content_type:
+                ext = "ogv"
+            elif "x-matroska" in content_type:
+                ext = "mkv"
+            elif "avi" in content_type or "msvideo" in content_type:
+                ext = "avi"
+            elif "3gpp" in content_type:
+                ext = "3gp"
     else:
         ext = "jpg"
         if "png" in content_type:

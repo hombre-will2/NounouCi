@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Trash2, Power, PowerOff, Edit3, ShieldCheck } from "lucide-react";
+import { Plus, Trash2, Power, PowerOff, Edit3, ShieldCheck, Film, Users } from "lucide-react";
 import Navbar from "../components/Navbar";
-import ImageUpload from "../components/ImageUpload";
+import MediaUpload from "../components/MediaUpload";
+import { Link } from "react-router-dom";
 import { api, API, formatApiErrorDetail } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "../components/ui/button";
@@ -32,6 +33,7 @@ export default function AdminAds() {
     link_url: "",
     placement: "home",
     active: true,
+    media_type: "image",
   });
 
   const load = async () => {
@@ -65,7 +67,7 @@ export default function AdminAds() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ title: "", image_url: "", link_url: "", placement: "home", active: true });
+    setForm({ title: "", image_url: "", link_url: "", placement: "home", active: true, media_type: "image" });
     setOpen(true);
   };
 
@@ -77,6 +79,7 @@ export default function AdminAds() {
       link_url: ad.link_url || "",
       placement: ad.placement,
       active: ad.active,
+      media_type: ad.media_type || "image",
     });
     setOpen(true);
   };
@@ -140,6 +143,19 @@ export default function AdminAds() {
           </Button>
         </div>
 
+        <div className="flex gap-2 mb-6">
+          <Link to="/admin/ads" data-testid="admin-tab-ads">
+            <Button variant="default" className="rounded-full bg-terracotta hover:bg-[#C55B3A] text-white">
+              <Film className="w-4 h-4 mr-1.5" /> Publicités
+            </Button>
+          </Link>
+          <Link to="/admin/users" data-testid="admin-tab-users">
+            <Button variant="outline" className="rounded-full">
+              <Users className="w-4 h-4 mr-1.5" /> Utilisateurs
+            </Button>
+          </Link>
+        </div>
+
         {loading ? (
           <div className="text-center py-20 text-gray-500">Chargement...</div>
         ) : ads.length === 0 ? (
@@ -152,8 +168,15 @@ export default function AdminAds() {
             {ads.map((ad) => (
               <div key={ad.id} data-testid={`ad-row-${ad.id}`} className="bg-white rounded-2xl border border-warm overflow-hidden">
                 <div className="relative h-36 bg-gray-100">
-                  {ad.image_url && (
+                  {ad.image_url && (ad.media_type === "video" ? (
+                    <video src={photoSrc(ad.image_url)} muted loop autoPlay playsInline className="w-full h-full object-cover" />
+                  ) : (
                     <img src={photoSrc(ad.image_url)} alt={ad.title} className="w-full h-full object-cover" />
+                  ))}
+                  {ad.media_type === "video" && (
+                    <span className="absolute bottom-2 left-2 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded font-bold flex items-center gap-1">
+                      <Film className="w-3 h-3" /> VIDÉO
+                    </span>
                   )}
                   <span className={`absolute top-2 right-2 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${ad.active ? "bg-sage text-white" : "bg-gray-300 text-gray-700"}`}>
                     {ad.active ? "Actif" : "Inactif"}
@@ -204,11 +227,13 @@ export default function AdminAds() {
                   placeholder="Ex: Promo crèche Cocody -30%"
                 />
               </div>
-              <ImageUpload
+              <MediaUpload
                 value={form.image_url}
-                onChange={(p) => setForm({ ...form, image_url: p || "" })}
-                label="Image *"
+                onChange={(p, mt) => setForm({ ...form, image_url: p || "", media_type: mt || "image" })}
+                label="Image ou vidéo *"
                 size="lg"
+                allowVideo={true}
+                mediaType={form.media_type}
                 testId="ad-form-image"
               />
               <div>

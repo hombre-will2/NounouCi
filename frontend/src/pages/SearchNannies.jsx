@@ -10,6 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "../components/ui/select";
 import { CITIES, ABIDJAN_QUARTIERS, AVAILABILITIES, CARE_TYPES } from "../lib/constants";
+import StarRating from "../components/StarRating";
 
 export default function SearchNannies() {
   const [filters, setFilters] = useState({
@@ -191,8 +192,16 @@ export default function SearchNannies() {
                   </div>
                 </div>
                 <div className="p-5 flex flex-col gap-2 flex-1">
-                  <div className="font-display text-xl text-gray-900">
-                    {n.first_name} {n.last_name?.[0]}.
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="font-display text-xl text-gray-900">
+                      {n.first_name} {n.last_name?.[0]}.
+                    </div>
+                    {(n.review_count || 0) > 0 && (
+                      <div className="flex items-center gap-1 shrink-0" data-testid={`nanny-rating-${n.user_id}`}>
+                        <StarRating value={n.avg_rating || 0} readOnly size={13} testId={`nanny-rating-stars-${n.user_id}`} />
+                        <span className="text-xs font-bold text-gray-700 ml-0.5">{(n.avg_rating || 0).toFixed(1)}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-1.5 text-sm text-gray-600">
                     <MapPin className="w-3.5 h-3.5 text-terracotta" />

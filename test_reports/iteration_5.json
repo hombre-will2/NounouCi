@@ -1,0 +1,35 @@
+{
+  "summary": "Iteration 5 backend retry: executed /app/backend/tests/test_iter5_reviews.py against the public REACT_APP_BACKEND_URL. 44 passed, 1 skipped (test_delete_other_admin_blocked - only one admin exists, expected). All iteration-5 features validated: video uploads (mp4/webm), 50MB max, media_type in /api/upload + /api/ads, admin user list/delete with cascade (reviews+matches cleaned), reviews CRUD with parent+accepted-match precondition (5-star), public review listing, nanny avg_rating/review_count in list and detail. Regression run found 23 failures but ALL caused by 2 stale test fixtures (not product regressions): old test_admin_ads.py uses obsolete admin credentials (+2250100000000/Admin1234) and test_new_features.py::test_upload_reject_large expects 6MB to be rejected (correct under previous 5MB limit, now accepted under new 50MB limit). Core flows (auth, profiles, matches, parents, nannies, notifications) all green.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "stale test file", "issue": "test_admin_ads.py uses ADMIN_PHONE=+2250100000000/Admin1234 - should be updated to +2250712044540/Aris20112 (current admin per memory/test_credentials.md). Cascades 22 KeyErrors from missing admin_token."},
+      {"endpoint": "stale test file", "issue": "test_new_features.py::test_upload_reject_large sends 6MB file expecting rejection; new MAX_UPLOAD_SIZE=50MB makes it pass. Iter5 already covers boundary at 51MB - this old test should be removed or boundary raised to >50MB."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter5_reviews.py",
+    "/app/test_reports/pytest/iteration_5_results.xml",
+    "/app/test_reports/pytest/iteration_5_regression.xml"
+  ],
+  "action_items": [
+    "Update /app/backend/tests/test_admin_ads.py ADMIN_PHONE/ADMIN_PWD constants to current seed (+2250712044540 / Aris20112) or delete the file (superseded by test_iter5_reviews.py admin coverage).",
+    "Remove or raise threshold of /app/backend/tests/test_new_features.py::test_upload_reject_large (it predates the 50MB limit)."
+  ],
+  "critical_code_review_comments": [
+    "Server upload extension verified working: accepts video/mp4, video/webm, video/quicktime; rejects application/pdf (400/415/422); rejects 51MB upload; response contains media_type.",
+    "/api/ads correctly persists media_type with default 'image' and validates against 'image'/'video' (422 for 'audio').",
+    "Reviews enforce: nanny role 403, parent without accepted match 403, missing nanny 404, rating 1-5 (422 for 0/6), duplicate review 400.",
+    "Admin cascade delete confirmed: nanny user removal also removes reviews and matches. Self-delete blocked (400), non-existent 404, non-admin caller 403.",
+    "All admin user list responses exclude _id and password_hash; include photo_url."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "98% (44/45 - 1 expected skip)", "frontend": "not tested"},
+  "test_credentials": "Admin +2250712044540/Aris20112 confirmed working. New iter5 test users are dynamically generated with TS suffix and cleaned up.",
+  "seed_data_creation": "Ephemeral parent/nanny users created and torn down via /admin/users delete in TestCleanup. Two test ads cleaned up.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration 5 backend fully validated. Use REACT_APP_BACKEND_URL env var when invoking pytest (was missing from supervisor env). Two stale test files (test_admin_ads.py, test_new_features.py upload_reject_large) need maintenance but do not indicate product bugs.",
+  "rca of the issue": "N/A - no product bugs found in iter5."
+}

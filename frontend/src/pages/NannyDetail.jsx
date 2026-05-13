@@ -11,12 +11,15 @@ import {
 } from "../components/ui/dialog";
 import { toast } from "sonner";
 import AdSlot from "../components/AdSlot";
+import StarRating from "../components/StarRating";
+import NannyReviews from "../components/NannyReviews";
 
 export default function NannyDetail() {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [nanny, setNanny] = useState(null);
+  const [hasAcceptedMatch, setHasAcceptedMatch] = useState(false);
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,6 +35,15 @@ export default function NannyDetail() {
       api.get(`/nannies/${id}`)
         .then(({ data }) => setNanny(data.nanny))
         .catch((e) => setError(formatApiErrorDetail(e?.response?.data?.detail)));
+      // Check accepted match
+      if (user.role === "parent") {
+        api.get("/matches").then(({ data }) => {
+          const accepted = (data.matches || []).some(
+            (m) => m.nanny_id === id && m.status === "accepted"
+          );
+          setHasAcceptedMatch(accepted);
+        }).catch(() => {});
+      }
     }
   }, [id, user]);
 
@@ -88,7 +100,14 @@ export default function NannyDetail() {
                 <div className="font-display text-2xl text-gray-900 mb-1">
                   {nanny.first_name} {nanny.last_name}
                 </div>
-                <div className="text-sm text-gray-600 mb-3">{nanny.age} ans</div>
+                <div className="text-sm text-gray-600 mb-2">{nanny.age} ans</div>
+                {(nanny.review_count || 0) > 0 && (
+                  <div className="flex items-center gap-2 mb-2" data-testid="nanny-rating-summary">
+                    <StarRating value={nanny.avg_rating || 0} readOnly size={16} testId="nanny-rating-stars" />
+                    <span className="text-sm font-bold text-gray-700">{(nanny.avg_rating || 0).toFixed(1)}</span>
+                    <span className="text-xs text-gray-500">({nanny.review_count} avis)</span>
+                  </div>
+                )}
                 <div className="text-3xl font-display text-terracotta mb-1">{nanny.hourly_rate?.toLocaleString("fr-FR")} <span className="text-sm font-normal text-gray-600">FCFA/mois</span></div>
               </div>
             </div>
@@ -199,6 +218,9 @@ export default function NannyDetail() {
                 </div>
               )}
             </div>
+
+            {/* Avis 5 étoiles */}
+            <NannyReviews nannyId={nanny.user_id} hasAcceptedMatch={hasAcceptedMatch} />
 
             {!isOwn && (
               <div className="bg-gradient-to-br from-terracotta to-[#E6B953] rounded-3xl p-6 sm:p-8 text-white">

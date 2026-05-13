@@ -68,7 +68,10 @@ export default function Navbar() {
               <NavLink to="/familles" testId="nav-parents">Familles à la recherche</NavLink>
             )}
             {user?.role === "admin" && (
-              <NavLink to="/admin/ads" testId="nav-admin">Admin</NavLink>
+              <>
+                <NavLink to="/admin/ads" testId="nav-admin">Admin · Pubs</NavLink>
+                <NavLink to="/admin/users" testId="nav-admin-users">Admin · Utilisateurs</NavLink>
+              </>
             )}
             {user && (
               <>

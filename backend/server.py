@@ -229,6 +229,7 @@ class AdIn(BaseModel):
     link_url: str = ""
     placement: Literal["home", "pre_contact"]
     active: bool = True
+    media_type: Literal["image", "video"] = "image"
 
 
 class AdUpdateIn(BaseModel):
@@ -237,6 +238,18 @@ class AdUpdateIn(BaseModel):
     link_url: Optional[str] = None
     placement: Optional[Literal["home", "pre_contact"]] = None
     active: Optional[bool] = None
+    media_type: Optional[Literal["image", "video"]] = None
+
+
+class ReviewIn(BaseModel):
+    nanny_id: str
+    rating: int = Field(ge=1, le=5)
+    comment: str = Field(default="", max_length=500)
+
+
+class ReviewUpdateIn(BaseModel):
+    rating: Optional[int] = Field(default=None, ge=1, le=5)
+    comment: Optional[str] = Field(default=None, max_length=500)
 
 
 # -------------------- Auth Endpoints --------------------
@@ -372,6 +385,18 @@ async def list_nannies(
         q["$or"] = [{"first_name": regex}, {"last_name": regex}, {"bio": regex}]
     cursor = db.nanny_profiles.find(q, {"_id": 0, "phone": 0}).sort("updated_at", -1)
     nannies = await cursor.to_list(200)
+    # Enrich with reviews summary
+    if nannies:
+        ids = [n["user_id"] for n in nannies]
+        pipeline = [
+            {"$match": {"nanny_id": {"$in": ids}}},
+            {"$group": {"_id": "$nanny_id", "avg": {"$avg": "$rating"}, "count": {"$sum": 1}}},
+        ]
+        summaries = {d["_id"]: d async for d in db.reviews.aggregate(pipeline)}
+        for n in nannies:
+            s = summaries.get(n["user_id"])
+            n["avg_rating"] = round(s["avg"], 1) if s else 0
+            n["review_count"] = s["count"] if s else 0
     return {"nannies": nannies}
 
 
@@ -389,6 +414,8 @@ async def get_nanny(nanny_id: str, user: dict = Depends(get_current_user)):
         })
         if not match:
             profile.pop("phone", None)
+    summary = await get_reviews_summary(nanny_id)
+    profile.update(summary)
     return {"nanny": profile}
 
 
@@ -602,23 +629,36 @@ async def delete_match(match_id: str, user: dict = Depends(get_current_user)):
 
 
 # -------------------- Upload / Files --------------------
-ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp", "image/jpg"}
-MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5 MB
+ALLOWED_MIME = {
+    "image/jpeg", "image/png", "image/webp", "image/jpg",
+    "video/mp4", "video/webm", "video/quicktime", "video/ogg",
+}
+MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB (vidéos)
 
 
 @api.post("/upload")
 async def upload_file(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
     content_type = (file.content_type or "").lower()
     if content_type not in ALLOWED_MIME:
-        raise HTTPException(status_code=400, detail="Format non autorisé (JPEG/PNG/WebP)")
+        raise HTTPException(status_code=400, detail="Format non autorisé (JPEG/PNG/WebP/MP4/WebM/MOV)")
     data = await file.read()
     if len(data) > MAX_UPLOAD_SIZE:
-        raise HTTPException(status_code=400, detail="Image trop grande (max 5 Mo)")
-    ext = "jpg"
-    if "png" in content_type:
-        ext = "png"
-    elif "webp" in content_type:
-        ext = "webp"
+        raise HTTPException(status_code=400, detail="Fichier trop volumineux (max 50 Mo)")
+    is_video = content_type.startswith("video/")
+    if is_video:
+        ext = "mp4"
+        if "webm" in content_type:
+            ext = "webm"
+        elif "quicktime" in content_type:
+            ext = "mov"
+        elif "ogg" in content_type:
+            ext = "ogv"
+    else:
+        ext = "jpg"
+        if "png" in content_type:
+            ext = "png"
+        elif "webp" in content_type:
+            ext = "webp"
     path = f"{APP_NAME}/uploads/{user['id']}/{uuid.uuid4()}.{ext}"
     result = put_object(path, data, content_type)
     record = {
@@ -626,6 +666,7 @@ async def upload_file(file: UploadFile = File(...), user: dict = Depends(get_cur
         "user_id": user["id"],
         "storage_path": result["path"],
         "content_type": content_type,
+        "media_type": "video" if is_video else "image",
         "size": result.get("size", len(data)),
         "is_deleted": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -634,6 +675,7 @@ async def upload_file(file: UploadFile = File(...), user: dict = Depends(get_cur
     return {
         "path": result["path"],
         "url": f"/api/files/{result['path']}",
+        "media_type": record["media_type"],
     }
 
 
@@ -725,6 +767,142 @@ async def public_active_ads(placement: Optional[str] = None):
     return {"ads": await cursor.to_list(50)}
 
 
+# -------------------- Admin: Users --------------------
+@api.get("/admin/users")
+async def admin_list_users(
+    role: Optional[str] = None,
+    search: Optional[str] = None,
+    _admin: dict = Depends(require_admin),
+):
+    q: dict = {}
+    if role and role != "all":
+        q["role"] = role
+    if search:
+        regex = {"$regex": search, "$options": "i"}
+        q["$or"] = [{"first_name": regex}, {"last_name": regex}, {"phone": regex}]
+    cursor = db.users.find(q, {"_id": 0, "password_hash": 0}).sort("created_at", -1)
+    users = await cursor.to_list(500)
+    # Enrich with profile photo + counts
+    nanny_ids = [u["id"] for u in users if u["role"] == "nounou"]
+    parent_ids = [u["id"] for u in users if u["role"] == "parent"]
+    nanny_photos = {}
+    parent_photos = {}
+    if nanny_ids:
+        async for n in db.nanny_profiles.find({"user_id": {"$in": nanny_ids}}, {"_id": 0, "user_id": 1, "photo_url": 1}):
+            nanny_photos[n["user_id"]] = n.get("photo_url")
+    if parent_ids:
+        async for p in db.parent_profiles.find({"user_id": {"$in": parent_ids}}, {"_id": 0, "user_id": 1, "photo_url": 1}):
+            parent_photos[p["user_id"]] = p.get("photo_url")
+    for u in users:
+        u["photo_url"] = nanny_photos.get(u["id"]) or parent_photos.get(u["id"])
+    return {"users": users}
+
+
+@api.delete("/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, admin: dict = Depends(require_admin)):
+    if user_id == admin["id"]:
+        raise HTTPException(status_code=400, detail="Vous ne pouvez pas supprimer votre propre compte admin")
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    if user.get("role") == "admin":
+        raise HTTPException(status_code=400, detail="Impossible de supprimer un admin")
+    # Cascade: profile, matches, notifications, reviews
+    await db.nanny_profiles.delete_many({"user_id": user_id})
+    await db.parent_profiles.delete_many({"user_id": user_id})
+    await db.matches.delete_many({"$or": [{"parent_id": user_id}, {"nanny_id": user_id}]})
+    await db.notifications.delete_many({"user_id": user_id})
+    await db.reviews.delete_many({"$or": [{"parent_id": user_id}, {"nanny_id": user_id}]})
+    await db.users.delete_one({"id": user_id})
+    return {"ok": True}
+
+
+# -------------------- Reviews --------------------
+async def get_reviews_summary(nanny_id: str) -> dict:
+    pipeline = [
+        {"$match": {"nanny_id": nanny_id}},
+        {"$group": {"_id": None, "avg": {"$avg": "$rating"}, "count": {"$sum": 1}}},
+    ]
+    docs = await db.reviews.aggregate(pipeline).to_list(1)
+    if not docs:
+        return {"avg_rating": 0, "review_count": 0}
+    return {"avg_rating": round(docs[0]["avg"], 1), "review_count": docs[0]["count"]}
+
+
+@api.post("/reviews")
+async def create_review(body: ReviewIn, user: dict = Depends(get_current_user)):
+    if user["role"] != "parent":
+        raise HTTPException(status_code=403, detail="Seuls les particuliers peuvent évaluer une nounou")
+    nanny = await db.users.find_one({"id": body.nanny_id, "role": "nounou"}, {"_id": 0})
+    if not nanny:
+        raise HTTPException(status_code=404, detail="Nounou introuvable")
+    # Vérifier qu'il existe une demande acceptée entre les deux
+    match = await db.matches.find_one({
+        "parent_id": user["id"],
+        "nanny_id": body.nanny_id,
+        "status": "accepted",
+    })
+    if not match:
+        raise HTTPException(status_code=403, detail="Vous devez avoir une mise en relation acceptée avec cette nounou pour l'évaluer")
+    # 1 avis par couple parent/nounou (upsert sinon erreur)
+    existing = await db.reviews.find_one({"parent_id": user["id"], "nanny_id": body.nanny_id})
+    if existing:
+        raise HTTPException(status_code=400, detail="Vous avez déjà évalué cette nounou. Modifiez votre avis existant.")
+    doc = {
+        "id": str(uuid.uuid4()),
+        "parent_id": user["id"],
+        "parent_name": f"{user['first_name']} {user['last_name']}",
+        "nanny_id": body.nanny_id,
+        "rating": body.rating,
+        "comment": body.comment,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.reviews.insert_one(doc)
+    await create_notification(
+        body.nanny_id,
+        f"{user['first_name']} {user['last_name']} vous a laissé un avis ({body.rating}/5).",
+        "/dashboard",
+    )
+    doc.pop("_id", None)
+    return {"review": doc}
+
+
+@api.put("/reviews/{review_id}")
+async def update_review(review_id: str, body: ReviewUpdateIn, user: dict = Depends(get_current_user)):
+    review = await db.reviews.find_one({"id": review_id}, {"_id": 0})
+    if not review:
+        raise HTTPException(status_code=404, detail="Avis introuvable")
+    if review["parent_id"] != user["id"] and user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Action non autorisée")
+    patch = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not patch:
+        raise HTTPException(status_code=400, detail="Aucune modification")
+    patch["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.reviews.update_one({"id": review_id}, {"$set": patch})
+    updated = await db.reviews.find_one({"id": review_id}, {"_id": 0})
+    return {"review": updated}
+
+
+@api.delete("/reviews/{review_id}")
+async def delete_review(review_id: str, user: dict = Depends(get_current_user)):
+    review = await db.reviews.find_one({"id": review_id}, {"_id": 0})
+    if not review:
+        raise HTTPException(status_code=404, detail="Avis introuvable")
+    if review["parent_id"] != user["id"] and user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Action non autorisée")
+    await db.reviews.delete_one({"id": review_id})
+    return {"ok": True}
+
+
+@api.get("/reviews")
+async def list_reviews(nanny_id: str):
+    cursor = db.reviews.find({"nanny_id": nanny_id}, {"_id": 0}).sort("created_at", -1)
+    reviews = await cursor.to_list(200)
+    summary = await get_reviews_summary(nanny_id)
+    return {"reviews": reviews, **summary}
+
+
 # -------------------- Stats / Public --------------------
 @api.get("/stats")
 async def stats():
@@ -781,6 +959,8 @@ async def startup():
     await db.notifications.create_index([("user_id", 1), ("created_at", -1)])
     await db.files.create_index("storage_path")
     await db.ads.create_index([("placement", 1), ("active", 1)])
+    await db.reviews.create_index([("nanny_id", 1), ("created_at", -1)])
+    await db.reviews.create_index([("parent_id", 1), ("nanny_id", 1)], unique=True)
     try:
         if init_storage():
             logger.info("Storage initialized")

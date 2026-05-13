@@ -7,6 +7,7 @@ import { api } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
 import AdSlot from "../components/AdSlot";
 import Logo from "../components/Logo";
+import VisitorCounter from "../components/VisitorCounter";
 
 export default function Landing() {
   const { user, loading: authLoading } = useAuth();
@@ -102,6 +103,11 @@ export default function Landing() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Visitor counter */}
+      <section className="max-w-7xl mx-auto px-5 sm:px-8 -mt-4 mb-4 flex justify-center fade-in">
+        <VisitorCounter />
       </section>
 
       {/* Process */}

@@ -21,6 +21,68 @@ const PLACEMENT_LABEL = {
   pre_contact: "Avant un contact (modale)",
 };
 
+function VisitorBaseEditor() {
+  const [info, setInfo] = useState(null);
+  const [value, setValue] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    api.get("/visitors/count").then(({ data }) => {
+      setInfo({ count: data.count });
+    });
+  }, []);
+
+  const save = async () => {
+    const n = Number(value);
+    if (Number.isNaN(n) || n < 0) {
+      toast.error("Entrez un nombre valide");
+      return;
+    }
+    setSaving(true);
+    try {
+      const { data } = await api.put("/admin/visitors/base", { base: n });
+      setInfo({ count: data.count, base: data.base, tracked: data.tracked });
+      setValue("");
+      toast.success("Compteur mis à jour");
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e?.response?.data?.detail));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-warm p-5 mb-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <div className="text-xs font-bold uppercase tracking-wider text-sage mb-1">Compteur de visiteurs</div>
+          <div className="font-display text-2xl text-gray-900" data-testid="admin-visitor-count">
+            {info?.count ?? "—"} <span className="text-sm text-gray-500 font-normal">visiteurs affichés</span>
+          </div>
+          {info?.base != null && (
+            <div className="text-xs text-gray-500 mt-0.5">
+              Base : {info.base} · Vrais visites comptées : {info.tracked}
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Input
+            type="number"
+            data-testid="admin-visitor-base-input"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="Nouvelle base (ex: 107)"
+            className="h-10 rounded-xl w-44"
+          />
+          <Button onClick={save} disabled={saving} data-testid="admin-visitor-base-save" className="rounded-full bg-sage hover:bg-[#3d664a] text-white">
+            {saving ? "..." : "Définir"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminAds() {
   const { user, loading: authLoading } = useAuth();
   const [ads, setAds] = useState([]);
@@ -155,6 +217,8 @@ export default function AdminAds() {
             </Button>
           </Link>
         </div>
+
+        <VisitorBaseEditor />
 
         {loading ? (
           <div className="text-center py-20 text-gray-500">Chargement...</div>

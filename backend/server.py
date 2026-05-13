@@ -252,6 +252,10 @@ class ReviewUpdateIn(BaseModel):
     comment: Optional[str] = Field(default=None, max_length=500)
 
 
+class VisitorBaseIn(BaseModel):
+    base: int = Field(ge=0)
+
+
 # -------------------- Auth Endpoints --------------------
 @api.post("/auth/register")
 async def register(body: RegisterIn, response: Response):
@@ -921,6 +925,59 @@ async def list_reviews(nanny_id: str):
     return {"reviews": reviews, **summary}
 
 
+# -------------------- Visitors --------------------
+async def _get_visitor_state() -> dict:
+    state = await db.app_stats.find_one({"key": "visitors"}, {"_id": 0})
+    if not state:
+        state = {"key": "visitors", "base": 100, "tracked": 0}
+        await db.app_stats.insert_one(dict(state))
+    return state
+
+
+@api.get("/visitors/count")
+async def visitors_count():
+    state = await _get_visitor_state()
+    return {"count": int(state.get("base", 0)) + int(state.get("tracked", 0))}
+
+
+@api.post("/visitors/track")
+async def visitors_track(request: Request):
+    """Incrémente le compteur si le visiteur n'a pas encore été compté.
+    Identification via le header X-Visitor-Id (généré et stocké côté front)."""
+    visitor_id = (request.headers.get("X-Visitor-Id") or "").strip()
+    if not visitor_id or len(visitor_id) < 6 or len(visitor_id) > 64:
+        state = await _get_visitor_state()
+        return {"count": int(state.get("base", 0)) + int(state.get("tracked", 0)), "new": False}
+    existing = await db.visitors.find_one({"id": visitor_id}, {"_id": 0})
+    if existing:
+        state = await _get_visitor_state()
+        return {"count": int(state.get("base", 0)) + int(state.get("tracked", 0)), "new": False}
+    await db.visitors.insert_one({
+        "id": visitor_id,
+        "ip": request.client.host if request.client else None,
+        "ua": request.headers.get("User-Agent", "")[:200],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    await db.app_stats.update_one(
+        {"key": "visitors"},
+        {"$inc": {"tracked": 1}, "$setOnInsert": {"base": 100}},
+        upsert=True,
+    )
+    state = await _get_visitor_state()
+    return {"count": int(state.get("base", 0)) + int(state.get("tracked", 0)), "new": True}
+
+
+@api.put("/admin/visitors/base")
+async def admin_set_visitors_base(body: VisitorBaseIn, _admin: dict = Depends(require_admin)):
+    await db.app_stats.update_one(
+        {"key": "visitors"},
+        {"$set": {"base": body.base}},
+        upsert=True,
+    )
+    state = await _get_visitor_state()
+    return {"base": state["base"], "tracked": state.get("tracked", 0), "count": int(state["base"]) + int(state.get("tracked", 0))}
+
+
 # -------------------- Stats / Public --------------------
 @api.get("/stats")
 async def stats():
@@ -979,6 +1036,8 @@ async def startup():
     await db.ads.create_index([("placement", 1), ("active", 1)])
     await db.reviews.create_index([("nanny_id", 1), ("created_at", -1)])
     await db.reviews.create_index([("parent_id", 1), ("nanny_id", 1)], unique=True)
+    await db.visitors.create_index("id", unique=True)
+    await db.app_stats.create_index("key", unique=True)
     try:
         if init_storage():
             logger.info("Storage initialized")

@@ -8,11 +8,17 @@ class AuthInterceptor(private val userPreferences: UserPreferences) : Intercepto
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
         val token = userPreferences.getToken()
+        val apiKey = userPreferences.getApiKey().ifEmpty { UserPreferences.DEFAULT_API_KEY }
 
         val requestBuilder = originalRequest.newBuilder()
         if (!token.isNullOrEmpty()) {
             requestBuilder.header("Authorization", "Bearer $token")
+        } else {
+            requestBuilder.header("Authorization", "Bearer $apiKey")
         }
+
+        requestBuilder.header("apikey", apiKey)
+        requestBuilder.header("Prefer", "return=representation")
 
         return chain.proceed(requestBuilder.build())
     }

@@ -13,7 +13,9 @@ class UserPreferences(context: Context) {
         private const val KEY_TOKEN = "jwt_token"
         private const val KEY_USER = "user_json"
         private const val KEY_BASE_URL = "base_url"
-        const val DEFAULT_BASE_URL = "http://127.0.0.1:8000" // Local server URL (use Configuration Serveur for Vercel/Supabase URL)
+        private const val KEY_API_KEY = "api_key"
+        const val DEFAULT_BASE_URL = "https://fdjnkrthnxzxozlgnfsz.supabase.co"
+        const val DEFAULT_API_KEY = "sb_publishable_NLPeHCfi8__z7e3IAzakSA_qvwbZvHu"
     }
 
     fun saveToken(token: String) {
@@ -45,6 +47,14 @@ class UserPreferences(context: Context) {
     fun saveBaseUrl(url: String) {
         val cleanUrl = if (url.endsWith("/")) url.substring(0, url.length - 1) else url
         prefs.edit().putString(KEY_BASE_URL, cleanUrl).apply()
+    }
+
+    fun getApiKey(): String {
+        return prefs.getString(KEY_API_KEY, DEFAULT_API_KEY) ?: DEFAULT_API_KEY
+    }
+
+    fun saveApiKey(key: String) {
+        prefs.edit().putString(KEY_API_KEY, key).apply()
     }
 
     fun clear() {

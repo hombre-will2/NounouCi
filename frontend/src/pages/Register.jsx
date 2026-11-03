@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Phone, Lock, Baby, HomeIcon } from "lucide-react";
+import { Users, Heart, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { formatApiErrorDetail } from "../lib/api";
 import { Button } from "../components/ui/button";
@@ -14,19 +14,21 @@ export default function Register() {
   const { register } = useAuth();
   const [role, setRole] = useState("parent");
   const [form, setForm] = useState({
-    phone: "",
-    password: "",
     first_name: "",
     last_name: "",
+    phone: "",
+    email: "",
+    password: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
 
   const validate = () => {
     const errs = {};
-    if (form.first_name.trim().length < 2) errs.first_name = "Prénom requis";
-    if (form.last_name.trim().length < 2) errs.last_name = "Nom requis";
+    if (!form.first_name.trim()) errs.first_name = "Prénom requis";
+    if (!form.last_name.trim()) errs.last_name = "Nom requis";
     if (!/^\+?\d{8,15}$/.test(form.phone.replace(/[\s-]/g, ""))) errs.phone = "Numéro invalide";
     if (form.password.length < 6) errs.password = "Min. 6 caractères";
     setFieldErrors(errs);
@@ -39,7 +41,14 @@ export default function Register() {
     if (!validate()) return;
     setLoading(true);
     try {
-      const user = await register({ ...form, role });
+      const user = await register({
+        first_name: form.first_name.trim(),
+        last_name: form.last_name.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        role,
+      });
       toast.success(`Bienvenue ${user.first_name} !`);
       navigate(role === "nounou" ? "/profile/nanny" : "/profile/parent");
     } catch (e) {
@@ -52,119 +61,139 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-warm-paper flex items-center justify-center px-5 py-10">
+    <div className="min-h-screen bg-warm-paper flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-lg bg-white rounded-3xl shadow-xl p-8 sm:p-10 border border-warm fade-in">
         <Link to="/" className="flex items-center gap-2 justify-center mb-6">
           <Logo size={44} />
         </Link>
-        <h1 className="font-display text-3xl text-gray-900 mb-2 text-center">Créer un compte</h1>
-        <p className="text-gray-600 text-center mb-6">Rejoignez la communauté</p>
+        <h1 className="font-display text-3xl font-bold text-gray-900 mb-1.5 text-center">Créer un compte</h1>
+        <p className="text-gray-600 text-center mb-6 text-sm">Rejoignez la communauté NounouCI</p>
 
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <button
-            type="button"
-            data-testid="register-role-parent"
-            onClick={() => setRole("parent")}
-            className={`p-4 rounded-2xl border-2 transition-all text-left ${
-              role === "parent"
-                ? "border-terracotta bg-orange-50 shadow-md"
-                : "border-warm bg-white hover:border-terracotta/40"
-            }`}
-          >
-            <HomeIcon className="w-6 h-6 text-terracotta mb-2" />
-            <div className="font-bold text-gray-900">Particulier</div>
-            <div className="text-xs text-gray-600 mt-1">Je cherche une nounou</div>
-          </button>
-          <button
-            type="button"
-            data-testid="register-role-nounou"
-            onClick={() => setRole("nounou")}
-            className={`p-4 rounded-2xl border-2 transition-all text-left ${
-              role === "nounou"
-                ? "border-sage bg-green-50 shadow-md"
-                : "border-warm bg-white hover:border-sage/40"
-            }`}
-          >
-            <Baby className="w-6 h-6 text-sage mb-2" />
-            <div className="font-bold text-gray-900">Nounou</div>
-            <div className="text-xs text-gray-600 mt-1">Je propose mes services</div>
-          </button>
+        {error && (
+          <div data-testid="register-error" className="text-sm text-red-600 bg-red-50 border border-red-200 p-3.5 rounded-2xl mb-5">
+            {error}
+          </div>
+        )}
+
+        <div className="mb-6">
+          <Label className="text-sm font-semibold mb-2 block text-gray-800">Je suis</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              data-testid="register-role-parent"
+              onClick={() => setRole("parent")}
+              className={`p-4 rounded-2xl border-2 transition-all text-left ${
+                role === "parent"
+                  ? "border-terracotta bg-orange-50/80 shadow-sm"
+                  : "border-gray-200 bg-white hover:border-terracotta/40"
+              }`}
+            >
+              <Users className="w-6 h-6 text-terracotta mb-2" />
+              <div className="font-bold text-gray-900 text-sm">Un particulier</div>
+              <div className="text-xs text-gray-500 mt-1">Je cherche une nounou</div>
+            </button>
+            <button
+              type="button"
+              data-testid="register-role-nounou"
+              onClick={() => setRole("nounou")}
+              className={`p-4 rounded-2xl border-2 transition-all text-left ${
+                role === "nounou"
+                  ? "border-terracotta bg-orange-50/80 shadow-sm"
+                  : "border-gray-200 bg-white hover:border-terracotta/40"
+              }`}
+            >
+              <Heart className="w-6 h-6 text-terracotta mb-2" />
+              <div className="font-bold text-gray-900 text-sm">Une nounou</div>
+              <div className="text-xs text-gray-500 mt-1">Je propose mes services</div>
+            </button>
+          </div>
         </div>
 
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={submit} className="space-y-4" autoComplete="off">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="first_name" className="text-sm font-semibold mb-1.5 block">Prénom</Label>
+              <Label htmlFor="first_name" className="text-sm font-semibold mb-1.5 block text-gray-800">Prénom</Label>
               <Input
                 id="first_name"
                 data-testid="register-firstname-input"
                 value={form.first_name}
                 onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                className="h-11 rounded-xl"
-                placeholder="Aïcha"
+                className="h-11 rounded-xl border-gray-200"
+                autoComplete="off"
               />
               {fieldErrors.first_name && <p className="text-xs text-red-600 mt-1">{fieldErrors.first_name}</p>}
             </div>
             <div>
-              <Label htmlFor="last_name" className="text-sm font-semibold mb-1.5 block">Nom</Label>
+              <Label htmlFor="last_name" className="text-sm font-semibold mb-1.5 block text-gray-800">Nom</Label>
               <Input
                 id="last_name"
                 data-testid="register-lastname-input"
                 value={form.last_name}
                 onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                className="h-11 rounded-xl"
-                placeholder="Koffi"
+                className="h-11 rounded-xl border-gray-200"
+                autoComplete="off"
               />
               {fieldErrors.last_name && <p className="text-xs text-red-600 mt-1">{fieldErrors.last_name}</p>}
             </div>
           </div>
 
           <div>
-            <Label htmlFor="phone" className="text-sm font-semibold mb-1.5 block">Numéro de téléphone</Label>
-            <div className="relative">
-              <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <Input
-                id="phone"
-                data-testid="register-phone-input"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="pl-10 h-11 rounded-xl"
-                placeholder="07 12 04 45 40 ou +225..."
-              />
-            </div>
+            <Label htmlFor="phone" className="text-sm font-semibold mb-1.5 block text-gray-800">Téléphone</Label>
+            <Input
+              id="phone"
+              data-testid="register-phone-input"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              className="h-11 rounded-xl border-gray-200"
+              autoComplete="off"
+            />
             {fieldErrors.phone && <p className="text-xs text-red-600 mt-1">{fieldErrors.phone}</p>}
           </div>
 
           <div>
-            <Label htmlFor="password" className="text-sm font-semibold mb-1.5 block">Mot de passe</Label>
+            <Label htmlFor="email" className="text-sm font-semibold mb-1.5 block text-gray-800">Email (optionnel)</Label>
+            <Input
+              id="email"
+              type="email"
+              data-testid="register-email-input"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className="h-11 rounded-xl border-gray-200"
+              autoComplete="off"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="password" className="text-sm font-semibold mb-1.5 block text-gray-800">Mot de passe</Label>
             <div className="relative">
-              <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <Input
                 id="password"
                 data-testid="register-password-input"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="pl-10 h-11 rounded-xl"
-                placeholder="6 caractères min."
+                className="h-11 rounded-xl border-gray-200 pr-10"
+                autoComplete="new-password"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
             {fieldErrors.password && <p className="text-xs text-red-600 mt-1">{fieldErrors.password}</p>}
           </div>
-
-          {error && (
-            <div data-testid="register-error" className="text-sm text-red-600 bg-red-50 p-3 rounded-xl">
-              {error}
-            </div>
-          )}
 
           <Button
             type="submit"
             data-testid="register-submit-btn"
             disabled={loading}
-            className="w-full h-12 rounded-xl bg-terracotta hover:bg-[#C55B3A] text-white font-semibold"
+            className="w-full h-12 rounded-xl bg-terracotta hover:bg-[#C55B3A] text-white font-semibold text-base mt-2"
           >
-            {loading ? "Création..." : "Créer mon compte"}
+            {loading ? "Création..." : "Créer un compte"}
           </Button>
         </form>
 

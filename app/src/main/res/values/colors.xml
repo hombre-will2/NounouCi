@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="terracotta">#D96C4A</color>
+    <color name="sage_green">#4A7C59</color>
+    <color name="warm_sand">#E6B953</color>
+    <color name="background_light">#FAF7F2</color>
+    <color name="surface_light">#FFFFFF</color>
+    <color name="text_dark">#2C2C2C</color>
+</resources>

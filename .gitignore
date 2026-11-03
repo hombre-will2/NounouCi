@@ -80,3 +80,10 @@ memory/test_credentials.md
 
 # Mobile development
 android-sdk/
+local.properties
+.gradle/
+.kotlin/
+build/
+app/build/
+app/.cxx/
+frontend/node_modules/.cache/default-development/0.pack

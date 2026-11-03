@@ -1,20 +1,20 @@
 import React from "react";
 
-// Reusable logo. Includes the brand image from /logo.jpg + wordmark (optional).
+// Reusable brand logo component with updated NounouCI baby icon.
 export default function Logo({ size = 36, withWordmark = true, className = "" }) {
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={`flex items-center gap-2.5 ${className}`}>
       <img
-        src="/logo.jpg"
-        alt="NounouCI"
+        src="/logo.svg"
+        alt="NounouCI Logo"
         width={size}
         height={size}
-        className="rounded-xl object-cover shadow-sm"
+        className="rounded-2xl object-contain shadow-sm flex-shrink-0"
         style={{ width: size, height: size }}
         data-testid="brand-logo"
       />
       {withWordmark && (
-        <span className="font-display text-xl text-gray-900">
+        <span className="font-display font-bold text-xl text-gray-900 tracking-tight">
           Nounou<span className="text-terracotta">CI</span>
         </span>
       )}

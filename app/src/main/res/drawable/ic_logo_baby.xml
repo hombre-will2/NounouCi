@@ -1,0 +1,37 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="100dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- Background Orange Squircle -->
+    <path
+        android:fillColor="#F05A24"
+        android:pathData="M26,0 h48 a26,26 0 0,1 26,26 v48 a26,26 0 0,1 -26,26 h-48 a26,26 0 0,1 -26,-26 v-48 a26,26 0 0,1 26,-26 z" />
+
+    <!-- Head Outline and Hair Curl -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="5.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 50,32 C 50,18 36,15 34,25 C 33,32 44,32 44,24 C 44,19 38,18 37,22 M 50,32 C 63,32 72,39 75,49 C 81,49 81,59 75,61 C 71,74 61,81 50,81 C 39,81 29,74 25,61 C 19,59 19,49 25,49 C 28,39 37,32 50,32" />
+
+    <!-- Left Eye -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 39,51 m -4.5,0 a 4.5,4.5 0 1,0 9,0 a 4.5,4.5 0 1,0 -9,0" />
+
+    <!-- Right Eye -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 61,51 m -4.5,0 a 4.5,4.5 0 1,0 9,0 a 4.5,4.5 0 1,0 -9,0" />
+
+    <!-- Smile -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M 42,63 Q 50,70 58,63" />
+</vector>
